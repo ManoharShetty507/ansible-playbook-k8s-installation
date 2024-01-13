@@ -5,14 +5,13 @@
   hostname:
     name: "{{ ansible_hostname }}"
 
-- name: Update /etc/hosts
-  lineinfile:
-    path: /etc/hosts
-    line: "{{ ansible_default_ipv4.address }} {{ ansible_hostname }}"
-  loop: "{{ groups['kubernetes'] }}"
-
 - name: Disable Swap
   shell: "sudo swapoff -a && sudo sed -i '/swap/d' /etc/fstab"
+
+- name: Ensure /etc/modules-load.d/containerd.conf exists
+  ansible.builtin.file:
+    path: /etc/modules-load.d/containerd.conf
+    state: touch
 
 - name: Load kernel modules
   blockinfile:
@@ -26,6 +25,11 @@
   loop:
     - "sudo modprobe overlay"
     - "sudo modprobe br_netfilter"
+
+- name: Ensure sysctl configuration file exists
+  ansible.builtin.file:
+    path: /etc/sysctl.d/99-kubernetes-cri.conf
+    state: touch
 
 - name: Configure sysctl for Kubernetes
   blockinfile:
@@ -41,32 +45,6 @@
 - name: Update package cache
   apt:
     update_cache: yes
-
-- name: Install containerd
-  apt:
-    name: "containerd"
-    state: present
-
-- name: Create containerd configuration directory
-  file:
-    path: "/etc/containerd"
-    state: directory
-
-- name: Copy containerd configuration file
-  copy:
-    src: "files/config.toml"
-    dest: "{{ containerd_config_path }}"
-
-- name: Modify containerd config
-  replace:
-    path: "{{ containerd_config_path }}"
-    regexp: 'SystemdCgroup \= false'
-    replace: 'SystemdCgroup \= true'
-
-- name: Restart containerd
-  service:
-    name: "containerd"
-    state: restarted
 
 - name: Update package cache
   apt:
