@@ -4,11 +4,6 @@
     name: "containerd"
     state: present
 
-- name: Ensure containerd is installed.
-  package:
-    name: "{{ containerd_package }}"
-    state: "{{ containerd_package_state }}"
-
 - name: Ensure containerd is started and enabled at boot.
   service:
     name: containerd
