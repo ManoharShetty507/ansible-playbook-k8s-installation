@@ -1,6 +1,6 @@
 ---
 - name: generate kubeadm join command for k8s nodes
-  hosts: "{{ hostlist }}"
+  hosts: k8s_node
   become: yes
   tasks:
     - name: Initialize Kubernetes control plane
