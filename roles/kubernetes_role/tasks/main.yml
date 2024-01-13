@@ -42,9 +42,9 @@
 - name: Apply sysctl changes
   command: "sudo sysctl --system"
 
-- name: Update package cache
-  apt:
-    update_cache: yes
+- name: Install and configure containerd
+  import_role:
+    name: containerd_role
 
 - name: Update package cache
   apt:
