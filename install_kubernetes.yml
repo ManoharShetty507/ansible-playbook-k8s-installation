@@ -1,0 +1,7 @@
+# install_kubernetes.yml
+---
+- name: Install Kubernetes Cluster
+  hosts: all
+  become: yes
+  roles:
+    - kubernetes_role
