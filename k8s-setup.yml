@@ -2,6 +2,6 @@
 - name: prepare nodes for running kubernetes
   hosts: "{{ hostlist }}"
   become: yes
-  tasks:
-    - import_role:
-        name: kubernetes_role
+  roles:
+    - kubernetes_role
+    - containerd_role
