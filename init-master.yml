@@ -22,18 +22,34 @@
 
     - name: config master to work
       shell: mkdir -p $HOME/.kube
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: ansible-user
       when: not k8s_initialized.stat.exists
 
     - name: copy kubeconfig
-      shell: yes | sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-      when: not k8s_initialized.stat.exists
+      shell: sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: ansible-user
 
-    - name: change permission
-      shell: sudo chown $(id -u):$(id -g) $HOME/.kube/config
-      when: not k8s_initialized.stat.exists
+    - name: change ownership of config file
+      shell: sudo chown ansible-user:ansible-user $HOME/.kube/config
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: root
 
     - name: Join nodes
       import_tasks: join-node.yml
 
     - name: Configuring Networking
+      command: kubectl get pods -n kube-system | grep calico
+      register: calico_installed
+      ignore_errors: true
+
+    - name: Apply Calico networking if not already applied
       command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+      when: calico_installed.rc != 0
