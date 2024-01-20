@@ -1,1 +1,39 @@
+---
+- name: generate kubeadm join command for k8s nodes
+  hosts: k8s_node
+  become: yes
+  tasks:
+    - name: enabling kubelet
+      service:
+        name: kubelet
+        state: started
+        enabled: yes
+    - name: config image
+      command:
+        cmd: "kubeadm config images pull"
+    - name: Check if Kubernetes is already initialized
+      stat:
+        path: /etc/kubernetes/manifests/kube-apiserver.yaml
+      register: k8s_initialized
 
+    - name: init master
+      shell: "kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
+      when: not k8s_initialized.stat.exists
+
+    - name: config master to work
+      shell: mkdir -p $HOME/.kube
+      when: not k8s_initialized.stat.exists
+
+    - name: copy kubeconfig
+      shell: yes | sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+      when: not k8s_initialized.stat.exists
+
+    - name: change permission
+      shell: sudo chown $(id -u):$(id -g) $HOME/.kube/config
+      when: not k8s_initialized.stat.exists
+
+    - name: Join nodes
+      import_tasks: join-node.yml
+
+    - name: Configuring Networking
+      command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
