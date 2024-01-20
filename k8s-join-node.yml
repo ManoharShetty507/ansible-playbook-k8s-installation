@@ -1,25 +1,28 @@
 ---
-- name: generate kubeadm join command for k8s nodes
-  hosts: k8s_node
+- hosts: master[0]
+  name: generate kubeadm join command for k8s nodes
   become: yes
   tasks:
-    - name: Initialize Kubernetes control plane
-      command: "sudo kubeadm init --pod-network-cidr={{ pod_network_cidr }} --kubernetes-version={{ kubernetes_version }}"
-      when: "'master' in inventory_hostname"
-
-    - name: Copy Kubeconfig for control plane
-      command: "sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config && sudo chown $(id -u):$(id -g) $HOME/.kube/config"
-      when: "'master' in inventory_hostname"
-
-    - name: Install Calico network addon
-      command: "kubectl apply -f {{ calico_manifest_url }}"
-      when: "'master' in inventory_hostname"
-
-    - name: Generate kubeadm join for ks nodes
-      command: "kubeadm token create --print-join-command"
+    - name: Get join command
+      command: kubeadm token create --print-join-command
       register: join_command
-      when: "'master' in inventory_hostname"
 
-    - name: Join nodes to the k8s cluster
-      command: "{{ join_command.stdout_lines[0] }}"
-      when: "'node' in inventory_hostname"
+    - name: Add node join command
+      add_host:
+        name: "dynamic_vars_holder"
+        node_join_command: "{{ join_command.stdout }} --v=7"
+
+- hosts: node
+  name: generate kubeadm join command for k8s nodes
+  become: yes
+  tasks:
+    - stat:
+        path: "{{k8s_config_dir}}/kubelet.conf"
+      register: kubelet.conf
+    - stat:
+        path: "sys/fs/chroup/cgroup.controllers"
+      register: cgv2_controllers
+
+    - name: Init node
+      command: "{{ hostvars['dynamic_vars_holder']['node_join_command] }} --ignore-preflight-errors=FileContent--proc-sys-net-bridge-bridge-nf-call-iptables"
+      when: not kubelet_conf.stat.exists
