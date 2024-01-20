@@ -1,9 +1,6 @@
 ---
 # roles/kubernetes/tasks/main.yml
 
-- name: Set hostname
-  hostname:
-    name: k8s_node
 - name: Disable Swap
   shell: "sudo swapoff -a && sudo sed -i '/swap/d' /etc/fstab"
 
@@ -60,22 +57,24 @@
     - "gnupg"
 
 - name: Add Kubernetes apt key
-  shell: "curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version.split('.')[1] }}/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg"
+  shell: |
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key -o /tmp/kubernetes-apt-keyring.gpg
+    sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg < /tmp/kubernetes-apt-keyring.gpg
+  args:
+    creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+- name: Ensure Kubernetes sources.list.d directory exists
+  file:
+    path: /etc/apt/sources.list.d
+    state: directory
 
 - name: Add Kubernetes repository
-  lineinfile:
-    path: "/etc/apt/sources.list.d/kubernetes.list"
-    line: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version.split('.')[1] }}/deb/ /"
+  copy:
+    content: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+    dest: /etc/apt/sources.list.d/kubernetes.list
 
-- name: Update package cache after adding repository
-  apt:
-    update_cache: yes
+- name: Import GPG key for Kubernetes repository
+  shell: "sudo apt-key --keyring /etc/apt/trusted.gpg.d/kubernetes.gpg adv --fetch-keys https://packages.cloud.google.com/apt/doc/apt-key.gpg"
 
-- name: Install Kubernetes packages
-  apt:
-    name: "{{ item }}"
-    state: present
-  loop:
-    - "kubeadm={{ kubernetes_version }}"
-    - "kubelet={{ kubernetes_version }}"
-    - "kubectl={{ kubernetes_version }}"
+- name: Install Kubernetes tools
+  shell: "apt-get update && apt-get install -y kubelet kubeadm kubectl && apt-mark hold kubelet kubeadm kubectl"
