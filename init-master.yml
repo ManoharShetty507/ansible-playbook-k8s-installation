@@ -42,9 +42,6 @@
       become: yes
       become_user: root
 
-    - name: Join nodes
-      import_tasks: join-node.yml
-
     - name: Configuring Networking
       command: kubectl get pods -n kube-system | grep calico
       register: calico_installed
