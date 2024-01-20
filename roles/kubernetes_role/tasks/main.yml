@@ -3,8 +3,7 @@
 
 - name: Set hostname
   hostname:
-    name: "{{ ansible_hostname }}"
-
+    name: k8s_node
 - name: Disable Swap
   shell: "sudo swapoff -a && sudo sed -i '/swap/d' /etc/fstab"
 
