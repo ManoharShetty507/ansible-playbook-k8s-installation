@@ -41,13 +41,18 @@
       become_user: ansible-user
       when: not config_file_stat.stat.exists
 
-    - name: change ownership of config file
-      shell: sudo chown ansible-user:ansible-user $HOME/.kube/config
-      args:
-        executable: /bin/bash
+    - name: Check kubeconfig file ownership
+      stat:
+        path: "{{ ansible_user_dir }}/.kube/config"
+      register: kubeconfig_stat
+
+    - name: Change ownership of config file
+      ansible.builtin.file:
+        path: "{{ ansible_user_dir }}/.kube/config"
+        owner: ansible-user
+        group: ansible-user
       become: yes
-      become_user: root
-      when: not config_file_stat.stat.exists
+      when: not config_file_stat.stat.exists and kubeconfig_stat.stat.exists and kubeconfig_stat.stat.pw_name != 'ansible-user'
 
     - name: Configure Network
       import_tasks: cni-configuration.yml
