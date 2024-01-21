@@ -20,7 +20,12 @@
       shell: "kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
       when: not k8s_initialized.stat.exists
 
-    - name: config master to work
+    - name: Check if config file exists
+      stat:
+        path: "{{ ansible_user_dir }}/.kube/config"
+      register: config_file_stat
+
+    - name: Create .kube folder in home directory
       shell: mkdir -p $HOME/.kube
       args:
         executable: /bin/bash
@@ -34,6 +39,7 @@
         executable: /bin/bash
       become: yes
       become_user: ansible-user
+      when: not config_file_stat.stat.exists
 
     - name: change ownership of config file
       shell: sudo chown ansible-user:ansible-user $HOME/.kube/config
@@ -41,6 +47,7 @@
         executable: /bin/bash
       become: yes
       become_user: root
+      when: not config_file_stat.stat.exists
 
     - name: Configure Network
       import_tasks: cni-configuration.yml
