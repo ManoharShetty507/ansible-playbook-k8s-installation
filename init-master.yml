@@ -41,3 +41,6 @@
         executable: /bin/bash
       become: yes
       become_user: root
+
+    - name: Configure Network
+      import_tasks: cni-configuration.yml
