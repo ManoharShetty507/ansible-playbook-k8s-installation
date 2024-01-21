@@ -1,6 +1,6 @@
 ---
 - name: generate kubeadm join command for k8s nodes
-  hosts: k8s_node
+  hosts: "{{ hostlist }}"
   become: yes
   tasks:
     - name: enabling kubelet
@@ -41,12 +41,3 @@
         executable: /bin/bash
       become: yes
       become_user: root
-
-    - name: Configuring Networking
-      command: kubectl get pods -n kube-system | grep calico
-      register: calico_installed
-      ignore_errors: true
-
-    - name: Apply Calico networking if not already applied
-      command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
-      when: calico_installed.rc != 0
