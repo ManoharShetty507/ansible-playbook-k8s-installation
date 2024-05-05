@@ -1,5 +1,5 @@
 ---
-- name: generate kubeadm join command for k8s nodes
+- name: Generate kubeadm join command for Master node
   hosts: k8s_node
   become: yes
   tasks:
@@ -11,6 +11,7 @@
     - name: config image
       command:
         cmd: "kubeadm config images pull"
+
     - name: Check if Kubernetes is already initialized
       stat:
         path: /etc/kubernetes/manifests/kube-apiserver.yaml
@@ -43,18 +44,16 @@
 
     - name: Check kubeconfig file ownership
       stat:
-        path: "{{ ansible_user_dir }}/.kube/config"
+        path: "/home/ansible-user/.kube/config"
       register: kubeconfig_stat
 
-    - name: Change ownership of config file
-      ansible.builtin.file:
-        path: "/home/ansible-user/.kube/config"
-        owner: ansible-user
-        group: ansible-user
-        mode: "0644"
+    - name: Change ownership and permissions of config file
+      ansible.builtin.command:
+        cmd: "chown ansible-user:ansible-user /home/ansible-user/.kube/config && chmod 644 /home/ansible-user/.kube/config"
       become: yes
-      when: kubeconfig_stat.stat.exists
-      
-    - name: Configure Network
-      import_tasks: cni-configuration.yml
+      when: kubeconfig_stat.stat.exists and kubeconfig_stat.stat.pw_name != 'ansible-user'
+
+    - name: Import Cilium Networking role
+      import_role:
+        name: cilium
 
