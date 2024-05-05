@@ -51,8 +51,11 @@
         path: "/home/ansible-user/.kube/config"
         owner: ansible-user
         group: ansible-user
+        mode: "0644"
       become: yes
-      when: not config_file_stat.stat.exists and kubeconfig_stat.stat.exists and kubeconfig_stat.stat.pw_name != 'ansible-user'
+      when:
+        - kubeconfig_stat.stat.exists
+        - kubeconfig_stat.stat.pw_name != 'ansible-user'
 
     - name: Configure Network
       import_tasks: cni-configuration.yml
