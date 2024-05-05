@@ -53,10 +53,8 @@
         group: ansible-user
         mode: "0644"
       become: yes
-      when:
-        - kubeconfig_stat.stat.exists
-        - kubeconfig_stat.stat.pw_name != 'ansible-user'
-
+      when: kubeconfig_stat.stat.exists
+      
     - name: Configure Network
       import_tasks: cni-configuration.yml
 
