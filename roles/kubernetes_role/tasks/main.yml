@@ -1,5 +1,6 @@
----
-# roles/kubernetes/tasks/main.yml
+- name: Set hostname
+  hostname:
+    name: "{{ ansible_hostname }}"
 
 - name: Disable Swap
   shell: "sudo swapoff -a && sudo sed -i '/swap/d' /etc/fstab"
@@ -42,10 +43,6 @@
   import_role:
     name: containerd_role
 
-- name: Update package cache
-  apt:
-    update_cache: yes
-
 - name: Install dependencies
   apt:
     name: "{{ item }}"
@@ -55,11 +52,10 @@
     - "ca-certificates"
     - "curl"
     - "gnupg"
+    - "gpg"
 
-- name: Add Kubernetes apt key
-  shell: |
-    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key -o /tmp/kubernetes-apt-keyring.gpg
-    sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg < /tmp/kubernetes-apt-keyring.gpg
+- name: Import GPG key for Kubernetes repository if not exists
+  shell: "curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg"
   args:
     creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
@@ -68,13 +64,16 @@
     path: /etc/apt/sources.list.d
     state: directory
 
-- name: Add Kubernetes repository
-  copy:
-    content: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
-    dest: /etc/apt/sources.list.d/kubernetes.list
-
-- name: Import GPG key for Kubernetes repository
-  shell: "sudo apt-key --keyring /etc/apt/trusted.gpg.d/kubernetes.gpg adv --fetch-keys https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+- name: Add Kubernetes repository entry to sources.list.d
+  shell: "echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list"
+  args:
+    creates: /etc/apt/sources.list.d/kubernetes.list
 
 - name: Install Kubernetes tools
   shell: "apt-get update && apt-get install -y kubelet kubeadm kubectl && apt-mark hold kubelet kubeadm kubectl"
+
+- name: Enable and start kubelet service
+  systemd:
+    name: kubelet
+    enabled: yes
+    state: started
