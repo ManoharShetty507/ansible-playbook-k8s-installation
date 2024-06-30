@@ -70,8 +70,7 @@
     creates: /etc/apt/sources.list.d/kubernetes.list
 
 - name: Install Kubernetes tools
-  shell: "apt-get update && apt-get install -y kubelet kubeadm kubectl && apt-mark hold kubelet kubeadm kubectl"
-
+  shell: "audo apt-get update && apt-get install -y kubelet kubeadm kubectl && apt-mark hold kubelet kubeadm kubectl"
 - name: Enable and start kubelet service
   systemd:
     name: kubelet
