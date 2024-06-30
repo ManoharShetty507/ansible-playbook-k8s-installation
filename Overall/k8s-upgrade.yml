@@ -1,0 +1,26 @@
+---
+- name: Fetch config
+  hosts: master[0]
+  become: yes
+  gather_facts: false
+  enviroment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  tasks:
+    - name: Create a temporary file to store KUBECONFIG
+      tempfile:
+        state: file
+        prefix: kubeconfig
+    - namee: Fetch kubeconfig
+      fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ tmp_kubeconfig.path }}"
+        flat: yes
+    - name: Add dynamic variable to kubeconfig path in ansible host
+      add_host:
+        name: "dynamic_vars_holder"
+        tmp_kubeconfig.path: "{{ tmp_kubeconfig.path }}"
+
+- name: Delete kubeconfig
+  file:
+    path: /etc/kubernetes/admin.conf
+    state: absent

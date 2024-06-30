@@ -1,0 +1,37 @@
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+
+stages:
+- test
+
+role_test:
+  stage: test
+  tags:
+  - minikube-runner
+  before_script:
+  - |
+    sudo yum -y update && sudo yum -y install ansible git which
+    mkdir -p $HOME/.ansible/roles
+    echo "localhost" > inventory
+    ln -s $(pwd) "$HOME/.ansible/roles/${CI_PROJECT_NAME}"
+  script:
+  - |
+    ansible-galaxy install --force --roles-path=$HOME/.ansible/roles --role-file=requirements.yml
+    # Basic role syntax check
+    ansible-playbook --list-hosts tests/test-playbook.yml --connection local
+    ansible-playbook tests/test-playbook.yml --syntax-check
+
+    export ANSIBLE_ROLES_PATH="$HOME/.ansible/roles"
+    # Run the first time
+    ansible-playbook --inventory inventory \
+      --connection local \
+      --extra-vars=letsencrypt_email=$LETSENCRYPT_EMAIL \
+      --extra-vars=issuer_type=ClusterIssuer \
+      --extra-vars=kubeconfig=$HOME/.kube/config \
+      tests/test-playbook.yml
+
+  - >
+    ansible-playbook --inventory inventory --connection local --extra-vars=letsencrypt_email=$LETSENCRYPT_EMAIL  --extra-vars=issuer_type=ClusterIssuer --extra-vars=kubeconfig=$HOME/.kube/config tests/test-playbook.yml | grep -q 'changed=0.*failed=0' && (echo 'Idempotence test: pass' && exit 0) || (echo 'Idempotence test: fail' && exit 1)
+
+
+

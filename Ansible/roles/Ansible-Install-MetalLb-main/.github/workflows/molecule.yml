@@ -1,0 +1,64 @@
+name: Molecule
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: Lint ✅
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: "${{ github.repository }}"
+
+      - name: molecule
+        uses: robertdebock/molecule-action@5.0.3
+        with:
+          command: lint
+
+  test:
+    name: Test 📊
+    runs-on: ubuntu-20.04
+    needs:
+      - lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: "${{ github.repository }}"
+
+      - name: Create a kubernetes cluster
+        uses: "Krucible/krucible-github-action@master"
+        id: create-cluster
+        with:
+          duration: 1
+          display-name: ${{ github.repository }}
+          krucible-account-id: ${{ secrets.KRUCIBLEACCOUNTID }}
+          krucible-api-key-id: ${{ secrets.KRUCIBLEAPIKEYID }}
+          krucible-api-key-secret: ${{ secrets.KRUCIBLEAPIKEYSECRET }}
+
+      - name: Molecule
+        uses: robertdebock/molecule-action@5.0.3
+        with:
+          image: "ubuntu"
+          options: parallel
+          scenario: default
+
+      - name: Check Pod
+        uses: "docker://bitnami/kubectl:1.18"
+        with:
+          args: "get pods -n metallb-system"
+
+      - name: Deprovision
+        run: |
+          curl -fLo krucible https://github.com/Krucible/krucible-cli/releases/latest/download/krucible-linux-amd64
+          chmod +x ./krucible
+          krucible set-config --account-id ${{ secrets.KRUCIBLEACCOUNTID }} --api-key-id ${{ secrets.KRUCIBLEAPIKEYID }} --api-key-secret ${{ secrets.KRUCIBLEAPIKEYSECRET }}
+          krucible delete cluster ${{ steps.create-cluster.outputs.cluster-id }}

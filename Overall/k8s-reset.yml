@@ -1,0 +1,19 @@
+---
+- name: Reset Kubernetes Cluster
+  hosts: k8s_node
+  become: yes
+  tasks:
+    - name: Stop kubelet service
+      service:
+        name: kubelet
+        state: stopped
+      ignore_errors: true
+
+    - name: Run kubeadm reset
+      shell: kubeadm reset -f
+      ignore_errors: true
+
+    - name: Remove /etc/kubernetes directory
+      file:
+        path: /etc/kubernetes
+        state: absent

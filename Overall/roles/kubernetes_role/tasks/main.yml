@@ -1,0 +1,94 @@
+- name: Set hostname
+  hostname:
+    name: "{{ ansible_hostname }}"
+
+- name: Disable Swap
+  shell: "sudo swapoff -a && sudo sed -i '/swap/d' /etc/fstab"
+
+- name: Ensure /etc/modules-load.d/containerd.conf exists
+  ansible.builtin.file:
+    path: /etc/modules-load.d/containerd.conf
+    state: touch
+
+- name: Load kernel modules
+  blockinfile:
+    path: /etc/modules-load.d/containerd.conf
+    block: |
+      overlay
+      br_netfilter
+
+- name: Load kernel modules
+  command: "{{ item }}"
+  loop:
+    - "sudo modprobe overlay"
+    - "sudo modprobe br_netfilter"
+
+- name: Ensure sysctl configuration file exists
+  ansible.builtin.file:
+    path: /etc/sysctl.d/99-kubernetes-cri.conf
+    state: touch
+
+- name: Configure sysctl for Kubernetes
+  blockinfile:
+    path: /etc/sysctl.d/99-kubernetes-cri.conf
+    block: |
+      net.bridge.bridge-nf-call-iptables = 1
+      net.ipv4.ip_forward = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+
+- name: Apply sysctl changes
+  command: "sudo sysctl --system"
+
+- name: Install and configure containerd
+  import_role:
+    name: containerd_role
+
+- name: Install dependencies
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - "apt-transport-https"
+    - "ca-certificates"
+    - "curl"
+    - "gnupg"
+    - "gpg"
+
+- name: Add Kubernetes apt key
+  shell: |
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key -o /tmp/kubernetes-apt-keyring.gpg
+    sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg < /tmp/kubernetes-apt-keyring.gpg
+  args:
+    creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+- name: Ensure Kubernetes sources.list.d directory exists
+  file:
+    path: /etc/apt/sources.list.d
+    state: directory
+
+- name: Add Kubernetes repository
+  copy:
+    content: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+    dest: /etc/apt/sources.list.d/kubernetes.list
+
+- name: Import GPG key for Kubernetes repository
+  shell: "sudo apt-key --keyring /etc/apt/trusted.gpg.d/kubernetes.gpg adv --fetch-keys https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+
+- name: Install Kubernetes tools
+  shell: "apt-get update && apt-get install -y kubelet kubeadm kubectl && apt-mark hold kubelet kubeadm kubectl"
+  
+#- name: Add Kubernetes apt key
+#  shell: "curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version.split('.')[1] }}/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg"
+
+#- name: Add Kubernetes repository
+#  lineinfile:
+#    path: "/etc/apt/sources.list.d/kubernetes.list"
+#@    line: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version.split('.')[1] }}/deb/ /"
+
+#- name: Add Kubernetes apt key
+#  become: yes
+#  shell: |
+#    if [ ! -e /etc/apt/keyrings/kubernetes-apt-keyring.gpg ]; then
+#      curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+#    fi
+#  ignore_errors: yes

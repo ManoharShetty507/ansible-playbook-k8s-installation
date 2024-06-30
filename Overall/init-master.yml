@@ -1,0 +1,123 @@
+---
+- name: generate kubeadm join command for k8s nodes
+  hosts: k8s_node
+  become: yes
+  tasks:
+    - name: enabling kubelet
+      service:
+        name: kubelet
+        state: started
+        enabled: yes
+    - name: config image
+      command:
+        cmd: "kubeadm config images pull"
+    - name: Check if Kubernetes is already initialized
+      stat:
+        path: /etc/kubernetes/manifests/kube-apiserver.yaml
+      register: k8s_initialized
+
+    - name: init master
+      shell: "kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
+      when: not k8s_initialized.stat.exists
+
+    - name: Check if config file exists
+      stat:
+        path: "{{ ansible_user_dir }}/.kube/config"
+      register: config_file_stat
+
+    - name: Create .kube folder in home directory
+      shell: mkdir -p $HOME/.kube
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: ansible-user
+      when: not k8s_initialized.stat.exists
+
+    - name: copy kubeconfig
+      shell: sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: ansible-user
+      when: not k8s_initialized.stat.exists
+
+    - name: Check kubeconfig file ownership
+      stat:
+        path: "{{ ansible_user_dir }}/.kube/config"
+      register: kubeconfig_stat
+
+    - name: Change ownership of config file
+      ansible.builtin.file:
+        path: "/home/ansible-user/.kube/config"
+        owner: ansible-user
+        group: ansible-user
+      become: yes
+
+    - name: Configure Network
+      import_tasks: cni-configuration.yml
+
+    - name: Join nodes
+      import_tasks: join-node.yml
+
+    #- name: Copy kubeconfig
+    #  shell: yes | sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+
+    #    - name: Check if the destination directory exists
+    #      stat:
+    #        path: /k8s
+    #      register: dir_check
+
+    #    - name: Ensure the destination directory exists
+    #      file:
+    #        path: /k8s
+    #        state: directory
+    #      when: not dir_check.stat.exists
+
+    #    - name: Token creation
+    #      shell: kubeadm token create --print-join-command
+    #      register: token
+
+    #    - debug:
+    #        var: token.stdout
+
+    #    - name: Saving output
+    #      copy:
+    #        content: "{{ token.stdout }}"
+    #        dest: "/k8s/newtoken"
+    #      delegate_to: localhost
+
+    #ansible-user ALL=(ALL) NOPASSWD: /bin/cp
+#   - name: Check if config file exists
+#      stat:
+#     path: "{{ ansible_user_dir }}/.kube/config"
+#   register: config_file_stat
+
+# - name: Copy kubeconfig if not exists
+#   shell: sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+#   args:
+#     executable: /bin/bash
+#   become: yes
+#   become_user: ansible-user
+#   when: not config_file_stat.stat.exists
+
+# - name: Change ownership of config file
+#   shell: sudo chown ansible-user:ansible-user $HOME/.kube/config
+#   args:
+#     executable: /bin/bash
+#   become: yes
+#   become_user: root
+#   when: not config_file_stat.stat.exists
+
+# - name: Change ownership of config file
+#   ansible.builtin.file:
+#     path: "{{ ansible_user_dir }}/.kube/config"
+#     owner: ansible-user
+#     group: ansible-user
+#   become: yes
+
+# - name: Change ownership of config file
+#   ansible.builtin.file:
+#     path: "/home/ansible-user/.kube/config"
+#     owner: ansible-user
+#     group: ansible-user
+#   become: yes

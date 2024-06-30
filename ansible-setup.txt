@@ -1,0 +1,390 @@
+-- Ansible-Set-up-Controller-and-managed-nodes
+
+- Login to the Redhat Server & Create a User:
+useradd -s /bin/bash -m -d /home/ansible-user   ansible-user
+cat /etc/passwd | grep ansible-user
+echo "ansible-user ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/ansible-user
+sudo su ansible-user
+sudo alternatives --list
+sudo yum install alternatives
+sudo alternatives --install /usr/bin/python python /usr/bin/python3 1
+sudo alternatives --set python /usr/bin/python3
+sudo yum -y install python3-pip -y
+pip3 install ansible --user
+ansible --version
+
+- Generate ssh key
+su - ansible-user
+ls -lart
+
+ssh-keygen
+ls -lart
+cd .ssh/
+ls -lrt
+cat id_rsa.pub
+
+# Copy the pub key to managed nodes
+- Login to managed nodes
+
+
+useradd -s /bin/bash -m -d /home/ansible-user   ansible-user
+cat /etc/passwd | grep ansible-user
+echo "ansible-user ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/ansible-user
+su ansible-user
+
+cd /home/ansible-user
+mkdir .ssh
+cd .ssh
+vi authorized_keys
+
+- Switch to ansible-user in ansible controller 
+export ANSIBLE_HOST_KEY_CHECKING=False
+ansible all -m ping -i inventory
+ansible all -m ansible.builtin.ping
+
+
+
+---
+
+kubeadm init --skip-phases=addon/kube-proxy
+
+kubectl edit ds kube-proxy -n kube-system
+
+
+spec:
+  template:
+    spec:
+      containers:
+      - name: kube-proxy
+        command:
+        - kube-proxy
+        - --feature-gates=IPv6DualStack=false
+        # Add other kube-proxy flags as needed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+========================================
+- Script
+=========================================
+#!/bin/bash
+
+# Install updates
+sudo su
+yum update -y 
+
+# Create ansible-user on the Red Hat server
+sudo useradd -s /bin/bash -m -d /home/ansible-user ansible-user
+
+# Display user details
+cat /etc/passwd | grep ansible-user
+
+# Allow ansible-user to run sudo without password
+echo "ansible-user ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/ansible-user
+
+# Switch to ansible-user
+sudo su ansible-user
+
+# List available alternatives
+sudo alternatives --list
+
+# Install alternatives (if not installed)
+sudo yum install alternatives
+
+# Set Python 3 as the default
+sudo alternatives --install /usr/bin/python python /usr/bin/python3 1
+sudo alternatives --set python /usr/bin/python3
+
+# Install Python 3 pip
+sudo yum -y install python3-pip -y
+pip3 install ansible --user
+
+# Display Ansible version
+ansible --version
+
+# Generate SSH key for ansible-user
+su ansible-user
+ls -lart
+
+# SSH key generation
+ssh-keygen
+ls -lart
+cd .ssh/
+ls -lrt
+cat id_rsa.pub > authorized_keys
+
+# Exit from ansible-user to the original user
+exit
+
+# Log into the Ubuntu server and run commands
+ssh user@ubuntu-server-ip << EOF
+sudo useradd -s /bin/bash -m -d /home/ansible-user ansible-user
+cat /etc/passwd | grep ansible-user
+echo "ansible-user ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/ansible-user
+su ansible-user
+cd /home/ansible-user
+mkdir .ssh
+cd .ssh
+EOF
+
+# Copy authorized_keys from Red Hat server to Ubuntu server
+scp /home/ansible-user/.ssh/authorized_keys user@ubuntu-server-ip:/home/ansible-user/.ssh/
+
+===============
+This will work
+================
+
+#!/bin/bash
+
+# Variables
+ansible_user="ansible-user"
+ubuntu_server_ip="your-ubuntu-server-ip"
+controller_user="ansible-user"  # Replace with the actual Red Hat user
+
+# Create ansible-user on the Red Hat server
+sudo useradd -s /bin/bash -m -d /home/$ansible_user $ansible_user
+
+# Display user details
+cat /etc/passwd | grep $ansible_user
+
+# Allow ansible-user to run sudo without password
+echo "$ansible_user ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$ansible_user
+
+# Switch to ansible-user
+sudo su $ansible_user
+
+# List available alternatives
+sudo alternatives --list
+
+# Install alternatives (if not installed)
+sudo yum install alternatives
+
+# Set Python 3 as the default
+sudo alternatives --install /usr/bin/python python /usr/bin/python3 1
+sudo alternatives --set python /usr/bin/python3
+
+# Install Python 3 pip
+sudo yum -y install python3-pip -y
+pip3 install ansible --user
+
+# Display Ansible version
+ansible --version
+
+# Generate SSH key for ansible-user
+su $ansible_user
+ls -lart
+
+# SSH key generation
+ssh-keygen
+ls -lart
+cd .ssh/
+ls -lrt
+
+# Copy id_rsa.pub to the Ubuntu server
+scp ~/.ssh/id_rsa.pub $controller_user@$ubuntu_server_ip:/tmp/id_rsa.pub
+
+# Exit from ansible-user to the original user
+exit
+
+# Log into the Ubuntu server and run commands
+ssh $controller_user@$ubuntu_server_ip << EOF
+sudo useradd -s /bin/bash -m -d /home/$ansible_user $ansible_user
+cat /etc/passwd | grep $ansible_user
+echo "$ansible_user ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$ansible_user
+su $ansible_user
+cd /home/$ansible_user
+mkdir .ssh
+cd .ssh
+cat /tmp/id_rsa.pub >> authorized_keys
+rm /tmp/id_rsa.pub
+EOF
+
+---
+Write and give me terraform script with variables to use below details to spin up 2 servers in aws
+
+Region: ap-south-1
+VPC: Hosting-VPC
+SUBNET: Hosting-Public-1
+Zone: ap-south-1a
+Security Group: Hosting-VPC-SG
+key-par: k8s-cluster-1
+
+Redhat Server: 
+Name: ansible-controller
+ami-04708942c263d8190 
+Type: t2.micro
+
+Ubuntu Server:  
+Name: Kubernetes-master
+ami-03f4878755434977f
+Type: t2.medium
+
+
+And, I want to pass this script to run only in redhat server
+
+#!/bin/bash
+
+# Variables
+ansible_user="ansible-user"
+ubuntu_server_ip="13.235.8.211"
+controller_user="ansible-user"  # Replace with the actual Red Hat user
+
+# Create ansible-user on the Red Hat server
+sudo update -y
+sudo useradd -s /bin/bash -m -d /home/$ansible_user $ansible_user
+
+# Display user details
+cat /etc/passwd | grep $ansible_user
+
+# Allow ansible-user to run sudo without password
+echo "$ansible_user ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$ansible_user
+
+# Switch to ansible-user
+sudo -u $ansible_user -i
+
+# List available alternatives
+sudo alternatives --list
+
+# Install alternatives (if not installed)
+sudo yum install alternatives -y
+
+# Set Python 3 as the default
+sudo alternatives --install /usr/bin/python python /usr/bin/python3 1
+sudo alternatives --set python /usr/bin/python3
+
+# Install Python 3 pip
+sudo yum -y install python3-pip -y
+pip3 install ansible --user
+
+# Display Ansible version
+ansible --version
+
+# Generate SSH key for ansible-user
+su $ansible_user
+ls -lart
+
+# SSH key generation
+ssh-keygen
+ls -lart
+cd .ssh/
+ls -lrt
+
+# Copy id_rsa.pub to the Ubuntu server
+scp ~/.ssh/id_rsa.pub $controller_user@$ubuntu_server_ip:/tmp/id_rsa.pub
+
+# Exit from ansible-user to the original user
+exit
+
+# Log into the Ubuntu server and run commands
+ssh $controller_user@$ubuntu_server_ip << EOF
+sudo useradd -s /bin/bash -m -d /home/$ansible_user $ansible_user
+cat /etc/passwd | grep $ansible_user
+echo "$ansible_user ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$ansible_user
+su $ansible_user
+cd /home/$ansible_user
+mkdir .ssh
+cd .ssh
+cat /tmp/id_rsa.pub >> authorized_keys
+rm /tmp/id_rsa.pub
+EOF
+
+===================
+
+# Variables
+ansible_user="ansible-user"
+ubuntu_server_ip="13.235.8.211"
+controller_user="ansible-user"  # Replace with the actual Red Hat user
+
+
+# List available alternatives
+sudo alternatives --list
+
+# Install alternatives (if not installed)
+sudo yum install alternatives -y
+
+# Set Python 3 as the default
+sudo alternatives --install /usr/bin/python python /usr/bin/python3 1
+sudo alternatives --set python /usr/bin/python3
+
+# Install Python 3 pip
+sudo yum -y install python3-pip -y
+pip3 install ansible --user
+
+# Display Ansible version
+ansible --version
+
+# Generate SSH key for ansible-user
+su $ansible_user
+ls -lart
+
+# SSH key generation
+ssh-keygen
+ls -lart
+cd .ssh/
+ls -lrt
+
+# Copy id_rsa.pub to the Ubuntu server
+scp ~/.ssh/id_rsa.pub ansible-user@13.235.8.211:/tmp/id_rsa.pub
+
+scp -i /home/ansible-user/server.pem ~/.ssh/id_rsa.pub/id_rsa.pub ansible-user@13.235.8.211:/tmp/id_rsa.pub
+
+
+# Exit from ansible-user to the original user
+exit
+
+# Log into the Ubuntu server and run commands
+ssh $controller_user@$ubuntu_server_ip << EOF
+sudo useradd -s /bin/bash -m -d /home/$ansible_user $ansible_user
+cat /etc/passwd | grep $ansible_user
+echo "$ansible_user ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$ansible_user
+su $ansible_user
+cd /home/$ansible_user
+mkdir .ssh
+cd .ssh
+cat /tmp/id_rsa.pub >> authorized_keys
+rm /tmp/id_rsa.pub
+EOF

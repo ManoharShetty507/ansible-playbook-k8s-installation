@@ -1,0 +1,5 @@
+issuer_type: ClusterIssuer
+kubeconfig: "{{ lookup('env', 'HOME') }}/.kube/config"
+namespace: kube-system
+release_version: "0.11"
+chart_version: latest

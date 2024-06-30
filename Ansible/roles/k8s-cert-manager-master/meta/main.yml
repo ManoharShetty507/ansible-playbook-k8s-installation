@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  author: Dan Thomson
+  description: Ansible Role for Installing Cert Manager into a Kubernetes Cluster
+  company: TRIUMF
+  min_ansible_version: 2.4
+
+  platforms:
+  - name: CentOS
+    versions:
+    - 7
+dependencies:
+- src: git+https://gitlab.triumf.ca/ansible/roles/k8s-helm.git
+  version: master
+  name: k8s-helm
+
