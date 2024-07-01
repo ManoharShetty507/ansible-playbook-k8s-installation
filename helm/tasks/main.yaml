@@ -1,17 +1,25 @@
+- name: Add Helm GPG key
+  ansible.builtin.apt_key:
+    url: https://baltocdn.com/helm/signing.asc
+    state: present
 
-- name: Fetch and set ownership/permissions of kube config file
-  hosts: control-node
-  tasks:
-    - name: Fetch kube config file from remote server to Ansible control node
-      ansible.builtin.fetch:
-        src: /home/ansible-user/.kube/config
-        dest: /home/ansible-user/.kube/config
-        flat: yes
+- name: Install apt-transport-https
+  ansible.builtin.apt:
+    name: apt-transport-https
+    state: present
 
-    - name: Set ownership and permissions of fetched config file on Ansible control node
-      ansible.builtin.file:
-        path: /home/ansible-user/.kube/config
-        owner: ansible-user
-        group: ansible-user
-        mode: "0644"
-        state: file
+- name: Add Helm repository
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main"
+    filename: "helm-stable-debian"
+    state: present
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Install Helm
+  ansible.builtin.apt:
+    name: helm
+    state: present
+
