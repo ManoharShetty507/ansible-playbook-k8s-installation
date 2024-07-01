@@ -8,6 +8,24 @@
         name: kubelet
         state: started
         enabled: yes
+        
+   - name: Add Kubernetes apt repository
+      ansible.builtin.apt_repository:
+        repo: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+        state: present
+      become: yes
+
+    - name: Update apt package index
+      ansible.builtin.apt:
+        update_cache: yes
+      become: yes
+
+    - name: Install kubectl
+      ansible.builtin.apt:
+        name: kubectl
+        state: present
+      become: yes
+
     - name: config image
       command:
         cmd: "kubeadm config images pull"
@@ -53,6 +71,24 @@
       become: yes
       when: kubeconfig_stat.stat.exists and kubeconfig_stat.stat.pw_name != 'ansible-user'
 
+
+- name: Fetch and set ownership/permissions of kube config file
+  hosts: control-node
+  tasks:
+    - name: Fetch kube config file from remote server to Ansible control node
+      ansible.builtin.fetch:
+        src: /home/ansible-user/.kube/config
+        dest: /home/ansible-user/.kube/config
+        flat: yes
+
+    - name: Set ownership and permissions of fetched config file on Ansible control node
+      ansible.builtin.file:
+        path: /home/ansible-user/.kube/config
+        owner: ansible-user
+        group: ansible-user
+        mode: "0644"
+        state: file
+        
     - name: Import Cilium Networking role
       import_role:
         name: cilium
