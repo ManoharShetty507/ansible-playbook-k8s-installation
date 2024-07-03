@@ -70,9 +70,17 @@
     creates: /etc/apt/sources.list.d/kubernetes.list
 
 - name: Install Kubernetes tools
-  shell: "audo apt-get update && apt-get install -y kubelet kubeadm kubectl && apt-mark hold kubelet kubeadm kubectl"
+  shell: "sudo apt-get update && sudo apt-get install -y kubelet kubeadm kubectl && sudo apt-mark hold kubelet kubeadm kubectl"
+
 - name: Enable and start kubelet service
   systemd:
     name: kubelet
     enabled: yes
     state: started
+
+- name: Setup kubectl on bastion
+  tasks:
+    - name: Import role kubectl on node
+      import_role:
+        name: package
+      when: inventory_hostname == "35.154.246.213"
