@@ -83,4 +83,4 @@
     - name: Import role kubectl on node
       import_role:
         name: package
-      when: inventory_hostname == "35.154.246.213"
+      when: inventory_hostname == "13.233.82.151"
