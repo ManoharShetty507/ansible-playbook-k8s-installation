@@ -8,23 +8,6 @@
         name: kubelet
         state: started
         enabled: yes
-        
-   - name: Add Kubernetes apt repository
-      ansible.builtin.apt_repository:
-        repo: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
-        state: present
-      become: yes
-
-    - name: Update apt package index
-      ansible.builtin.apt:
-        update_cache: yes
-      become: yes
-
-    - name: Install kubectl
-      ansible.builtin.apt:
-        name: kubectl
-        state: present
-      become: yes
 
     - name: config image
       command:
@@ -44,51 +27,38 @@
         path: "{{ ansible_user_dir }}/.kube/config"
       register: config_file_stat
 
+    - name: Debug k8s_initialized existence
+      ansible.builtin.debug:
+        msg: "k8s_initialized exists: {{ k8s_initialized.stat.exists }}"
+
     - name: Create .kube folder in home directory
-      shell: mkdir -p /home/ansible-user/.kube
-      args:
-        executable: /bin/bash
-      become: yes
+      ansible.builtin.file:
+        path: /home/ansible-user/.kube
+        state: directory
+        owner: ansible-user
+        group: ansible-user
+        mode: "0755"
+      when: not k8s_initialized.stat.exists
+
+    - name: Copy kubeconfig
+      ansible.builtin.command:
+        cmd: sudo cp -i /etc/kubernetes/admin.conf /home/ansible-user/.kube/config
       become_user: ansible-user
       when: not k8s_initialized.stat.exists
 
-    - name: copy kubeconfig
-      shell: sudo cp -i /etc/kubernetes/admin.conf /home/ansible-user/.kube/config
-      args:
-        executable: /bin/bash
-      become: yes
-      become_user: ansible-user
-      when: not k8s_initialized.stat.exists
-
-    - name: Check kubeconfig file ownership
-      stat:
-        path: "/home/ansible-user/.kube/config"
+    - name: Check ownership and permissions of config file
+      ansible.builtin.stat:
+        path: /home/ansible-user/.kube/config
       register: kubeconfig_stat
 
-    - name: Change ownership and permissions of config file
-      ansible.builtin.command:
-        cmd: "chown ansible-user:ansible-user /home/ansible-user/.kube/config && chmod 644 /home/ansible-user/.kube/config"
-      become: yes
-      when: kubeconfig_stat.stat.exists and kubeconfig_stat.stat.pw_name != 'ansible-user'
-
-
-- name: Fetch and set ownership/permissions of kube config file
-  hosts: control-node
-  tasks:
-    - name: Fetch kube config file from remote server to Ansible control node
-      ansible.builtin.fetch:
-        src: /home/ansible-user/.kube/config
-        dest: /home/ansible-user/.kube/config
-        flat: yes
-
-    - name: Set ownership and permissions of fetched config file on Ansible control node
+    - name: Change ownership and permissions of config file on Ubuntu
       ansible.builtin.file:
         path: /home/ansible-user/.kube/config
         owner: ansible-user
         group: ansible-user
         mode: "0644"
-        state: file
-        
+      when: kubeconfig_stat.stat.exists and kubeconfig_stat.stat.pw_name != 'ansible-user'
+
     - name: Import Cilium Networking role
       import_role:
         name: cilium
