@@ -1,23 +1,26 @@
 ---
-- name: Install Helm on nodes
+- name: Install Helm manually
   hosts: all
   become: yes
   tasks:
-    - name: Add Helm GPG key
-      ansible.builtin.apt_key:
-        url: https://baltocdn.com/helm/signing.asc
-        state: present
+    - name: Download Helm tarball
+      ansible.builtin.get_url:
+        url: https://get.helm.sh/helm-v3.12.0-linux-amd64.tar.gz
+        dest: /tmp/helm-v3.12.0-linux-amd64.tar.gz
 
-    - name: Install apt-transport-https
-      ansible.builtin.apt:
-        name: apt-transport-https
-        state: present
+    - name: Extract Helm tarball
+      ansible.builtin.unarchive:
+        src: /tmp/helm-v3.12.0-linux-amd64.tar.gz
+        dest: /tmp
+        remote_src: yes
 
-    - name: Add Helm repository
-      ansible.builtin.apt_repository:
-        repo: deb https://baltocdn.com/helm/stable/debian/ all main
-        state: present
+    - name: Move Helm binary to /usr/local/bin
+      ansible.builtin.command: mv /tmp/linux-amd64/helm /usr/local/bin/helm
+      args:
+        creates: /usr/local/bin/helm
 
-    - name: Update apt package index
-      ansible.builtin.apt:
-        update_cache: yes
+    - name: Ensure Helm binary is executable
+      ansible.builtin.file:
+        path: /usr/local/bin/helm
+        mode: '0755'
+        state: file
