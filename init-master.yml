@@ -62,4 +62,3 @@
     - name: Import Cilium Networking role
       import_role:
         name: cilium
-
