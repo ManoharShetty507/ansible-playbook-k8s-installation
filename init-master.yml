@@ -3,80 +3,85 @@
   hosts: k8s_node
   become: yes
   tasks:
-    - name: enabling kubelet
+    - name: Enabling kubelet
       service:
         name: kubelet
         state: started
         enabled: yes
 
-    - name: config image
-      command:
-        cmd: "kubeadm config images pull"
+    - name: Pull kubeadm config images
+      command: "kubeadm config images pull"
 
-    - name: Check if Kubernetes is already initialized
+    - name: Check if Kubernetes is already initialized (kube-apiserver)
       stat:
         path: /etc/kubernetes/manifests/kube-apiserver.yaml
       register: k8s_initialized
 
-- name: Check if Kubernetes is already initialized
-  stat:
-    path: /home/ansible-user/.kube/init_done
-  register: k8s_initialized
+    - name: Debug k8s_initialized existence
+      debug:
+        msg: "k8s_initialized exists: {{ k8s_initialized.stat.exists }}"
 
-- name: Debug k8s_initialized existence
-  ansible.builtin.debug:
-    msg: "k8s_initialized exists: {{ k8s_initialized.stat.exists }}"
+    - name: Check if .kube folder exists
+      stat:
+        path: /home/ansible-user/.kube
+      register: kube_folder
 
-- name: Check if .kube folder exists
-  stat:
-    path: /home/ansible-user/.kube
-  register: kube_folder
+    - name: Debug .kube folder existence
+      debug:
+        msg: ".kube folder exists: {{ kube_folder.stat.exists }}"
 
-- name: Create .kube directory
-  file:
-    path: /home/ansible-user/.kube
-    state: directory
-    mode: '0755'
-  when: not kube_folder.stat.exists
+    - name: Create .kube directory
+      file:
+        path: /home/ansible-user/.kube
+        state: directory
+        mode: '0755'
+      when: not kube_folder.stat.exists
 
-- name: Initialize Kubernetes master node
-  shell: "kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
-  when: not k8s_initialized.stat.exists
+    - name: Initialize Kubernetes master node
+      shell: "kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
+      when: not k8s_initialized.stat.exists
 
-- name: Create kube config directory
-  file:
-    path: /home/ansible-user/.kube
-    state: directory
-    mode: '0755'
-  when: not k8s_initialized.stat.exists
+    - name: Check if Kubernetes is initialized
+      stat:
+        path: /home/ansible-user/.kube/init_done
+      register: k8s_initialized
 
-- name: Copy kube config
-  copy:
-    src: /etc/kubernetes/admin.conf
-    dest: /home/ansible-user/.kube/config
-  when: not k8s_initialized.stat.exists
-  mode: '0644'
+    - name: Create .kube directory
+      file:
+        path: /home/ansible-user/.kube
+        state: directory
+        mode: '0755'
+      when: not k8s_initialized.stat.exists
 
-- name: Create initialization marker file
-  file:
-    path: /home/ansible-user/.kube/init_done
-    state: touch
-  when: not k8s_initialized.stat.exists
 
-- name: Copy kubeconfig
-  ansible.builtin.command:
-  cmd: sudo cp -i /etc/kubernetes/admin.conf /home/ansible-user/.kube/config
-  become_user: ansible-user
-  when: not k8s_initialized.stat.exists
+
+    - name: Copy kube config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/ansible-user/.kube/config
+        mode: '0644'
+      when: not k8s_initialized.stat.exists
+
+    - name: Create initialization marker file
+      file:
+        path: /home/ansible-user/.kube/init_done
+        state: touch
+      when: not k8s_initialized.stat.exists
+
+    - name: Copy kubeconfig
+      command: "sudo cp -i /etc/kubernetes/admin.conf /home/ansible-user/.kube/config"
+      become_user: ansible-user
+      when: not k8s_initialized.stat.exists
+
+    - name: Check ownership and permissions of config file
+      stat:
+        path: /home/ansible-user/.kube/config
+      register: kubeconfig_stat
 
     - name: Change ownership and permissions of config file on Ubuntu
-      ansible.builtin.file:
+      file:
         path: /home/ansible-user/.kube/config
         owner: ansible-user
         group: ansible-user
         mode: "0644"
       when: kubeconfig_stat.stat.exists and kubeconfig_stat.stat.pw_name != 'ansible-user'
-
-    - name: Import Cilium Networking role
-      import_role:
-        name: cilium
