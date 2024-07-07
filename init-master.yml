@@ -18,38 +18,56 @@
         path: /etc/kubernetes/manifests/kube-apiserver.yaml
       register: k8s_initialized
 
-    - name: init master
-      shell: "kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
-      when: not k8s_initialized.stat.exists
+- name: Check if Kubernetes is already initialized
+  stat:
+    path: /home/ansible-user/.kube/init_done
+  register: k8s_initialized
 
-    - name: Check if config file exists
-      stat:
-        path: "{{ ansible_user_dir }}/.kube/config"
-      register: config_file_stat
+- name: Debug k8s_initialized existence
+  ansible.builtin.debug:
+    msg: "k8s_initialized exists: {{ k8s_initialized.stat.exists }}"
 
-    - name: Debug k8s_initialized existence
-      ansible.builtin.debug:
-        msg: "k8s_initialized exists: {{ k8s_initialized.stat.exists }}"
+- name: Check if .kube folder exists
+  stat:
+    path: /home/ansible-user/.kube
+  register: kube_folder
 
-    - name: Create .kube folder in home directory
-      ansible.builtin.file:
-        path: /home/ansible-user/.kube
-        state: directory
-        owner: ansible-user
-        group: ansible-user
-        mode: "0755"
-      when: not k8s_initialized.stat.exists
+- name: Create .kube directory
+  file:
+    path: /home/ansible-user/.kube
+    state: directory
+    mode: '0755'
+  when: not kube_folder.stat.exists
 
-    - name: Copy kubeconfig
-      ansible.builtin.command:
-        cmd: sudo cp -i /etc/kubernetes/admin.conf /home/ansible-user/.kube/config
-      become_user: ansible-user
-      when: not k8s_initialized.stat.exists
+- name: Initialize Kubernetes master node
+  shell: "kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
+  when: not k8s_initialized.stat.exists
 
-    - name: Check ownership and permissions of config file
-      ansible.builtin.stat:
-        path: /home/ansible-user/.kube/config
-      register: kubeconfig_stat
+- name: Create kube config directory
+  file:
+    path: /home/ansible-user/.kube
+    state: directory
+    mode: '0755'
+  when: not k8s_initialized.stat.exists
+
+- name: Copy kube config
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /home/ansible-user/.kube/config
+  when: not k8s_initialized.stat.exists
+  mode: '0644'
+
+- name: Create initialization marker file
+  file:
+    path: /home/ansible-user/.kube/init_done
+    state: touch
+  when: not k8s_initialized.stat.exists
+
+- name: Copy kubeconfig
+  ansible.builtin.command:
+  cmd: sudo cp -i /etc/kubernetes/admin.conf /home/ansible-user/.kube/config
+  become_user: ansible-user
+  when: not k8s_initialized.stat.exists
 
     - name: Change ownership and permissions of config file on Ubuntu
       ansible.builtin.file:
