@@ -12,10 +12,16 @@
     - name: Pull kubeadm config images
       command: "kubeadm config images pull"
 
+    - name: Check if Kubernetes is already initialized
+      stat:
+        path: /path/to/k8s_initialized/file
+      register: k8s_initialized
+
     - name: Initialize Kubernetes master node
       shell: "kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
-      when: not k8s_initialized.stat.exists
-      
+      when: k8s_initialized.stat.exists == false
+
+
     - name: Check if /etc/kubernetes directory exists
       stat:
         path: /etc/kubernetes
@@ -28,8 +34,8 @@
     - name: Check if Kubernetes is already initialized (kube-apiserver)
       stat:
         path: /etc/kubernetes/manifests/kube-apiserver.yaml
-      register: k8s_initialized    
-        
+      register: k8s_initialized
+
     - name: Create .kube directory
       file:
         path: /home/ansible-user/.kube
@@ -49,6 +55,11 @@
       become_user: ansible-user
       when: not k8s_initialized.stat.exists
 
+    - name: Gather information about kubeconfig file
+      stat:
+        path: /home/ansible-user/.kube/config
+      register: kubeconfig_stat
+
     - name: Change ownership and permissions of config file on Ubuntu
       file:
         path: /home/ansible-user/.kube/config
@@ -56,7 +67,6 @@
         group: ansible-user
         mode: "0644"
       when: kubeconfig_stat.stat.exists and kubeconfig_stat.stat.pw_name != 'ansible-user'
-
     - name: Setup kubectl on bastion
       import_role:
         name: package
