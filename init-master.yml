@@ -70,7 +70,7 @@
     - name: Setup kubectl on bastion
       import_role:
         name: package
-      when: ansible_host == "15.206.173.0"
+      when: ansible_host == "43.205.242.193"
 
     - name: Import Calico Networking role
       import_role:
