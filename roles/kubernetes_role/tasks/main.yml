@@ -78,9 +78,3 @@
     enabled: yes
     state: started
 
-- name: Setup kubectl on bastion
-  tasks:
-    - name: Import role kubectl on node
-      import_role:
-        name: package
-      when: inventory_hostname == "13.235.51.42"
