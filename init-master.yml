@@ -12,16 +12,22 @@
     - name: Pull kubeadm config images
       command: "kubeadm config images pull"
 
-
     - name: Check if Kubernetes is already initialized
       stat:
-        path: /etc/kubernetes/admin.conf
+      path: /etc/kubernetes/admin.conf
       register: k8s_initialized
 
     - name: Initialize Kubernetes master node
       shell: "kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
       when: not k8s_initialized.stat.exists
 
+
+    - pause:
+      prompt: "Validate kubeadm init"
+
+    - name: Store init output
+      action: copy content="{{ rslt.stdout }}" dest="/etc/kubernetes/kubeadm-init.stdout"
+  
     - name: Check if /etc/kubernetes directory exists
       stat:
         path: /etc/kubernetes
@@ -34,34 +40,40 @@
     - name: Check if Kubernetes is already initialized (kube-apiserver)
       stat:
         path: /etc/kubernetes/manifests/kube-apiserver.yaml
-      register: k8s_initialized
+      register: k8s_initialized    
 
     - name: Create .kube folder
       file:
-          path: "/home/ansible-user/.kube"
-          state: directory
-          owner: /home/ansible-user/
+      path: "/home/ansible-user/.kube"
+      state: directory
+      owner: "{{ ansible_ssh_user }}"      
 
-
-    - name: Copy admin.conf to .kube folder
-      copy:
-        src: /etc/kubernetes/admin.conf
-        dest: /home/ansible-user//.kube/config
-        owner: /home/ansible-user/
-        remote_src: yes
-
-    - name: Create .kube folder
+    - name: Create .kube directory
       file:
-        path: "/root/.kube"
+        path: /home/ansible-user/.kube
         state: directory
-        owner: "root"
+        mode: '0755'
+      when: not k8s_initialized.stat.exists
 
     - name: Copy admin.conf to .kube folder
       copy:
-        src: /etc/kubernetes/admin.conf
-        dest: "/root/.kube/config"
-        owner: "root"
-        remote_src: yes
+       src: /etc/kubernetes/admin.conf
+      dest: /home/ansible-user//.kube/config
+      owner: /home/ansible-user/
+      remote_src: yes
+
+    - name: Create .kube folder
+      file:
+      path: "/root/.kube"
+      state: directory
+      owner: "root"
+
+    - name: Copy admin.conf to .kube folder
+      copy:
+      src: /etc/kubernetes/admin.conf
+      dest: "/root/.kube/config"
+      owner: "root"
+      remote_src: yes    
 
     - name: Change ownership and permissions of config file on Ubuntu
       file:
@@ -79,72 +91,3 @@
     - name: Import Calico Networking role
       import_role:
         name: calico-networking
-    #   import_role:
-    #     name: <role_name_here>
-
-#    - name: Import Calico Networking role
-#      import_role:
-#        name: calico-networking
-
-#- name: Copy kubeconfig
-#  shell: yes | sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-
-#    - name: Check if the destination directory exists
-#      stat:
-#        path: /k8s
-#      register: dir_check
-
-#    - name: Ensure the destination directory exists
-#      file:
-#        path: /k8s
-#        state: directory
-#      when: not dir_check.stat.exists
-
-#    - name: Token creation
-#      shell: kubeadm token create --print-join-command
-#      register: token
-
-#    - debug:
-#        var: token.stdout
-
-#    - name: Saving output
-#      copy:
-#        content: "{{ token.stdout }}"
-#        dest: "/k8s/newtoken"
-#      delegate_to: localhost
-
-#ansible-user ALL=(ALL) NOPASSWD: /bin/cp
-#   - name: Check if config file exists
-#      stat:
-#     path: "{{ ansible_user_dir }}/.kube/config"
-#   register: config_file_stat
-
-# - name: Copy kubeconfig if not exists
-#   shell: sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-#   args:
-#     executable: /bin/bash
-#   become: yes
-#   become_user: ansible-user
-#   when: not config_file_stat.stat.exists
-
-# - name: Change ownership of config file
-#   shell: sudo chown ansible-user:ansible-user $HOME/.kube/config
-#   args:
-#     executable: /bin/bash
-#   become: yes
-#   become_user: root
-#   when: not config_file_stat.stat.exists
-
-# - name: Change ownership of config file
-#   ansible.builtin.file:
-#     path: "{{ ansible_user_dir }}/.kube/config"
-#     owner: ansible-user
-#     group: ansible-user
-#   become: yes
-
-# - name: Change ownership of config file
-#   ansible.builtin.file:
-#     path: "/home/ansible-user/.kube/config"
-#     owner: ansible-user
-#     group: ansible-user
-#   become: yes
