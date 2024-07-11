@@ -85,3 +85,9 @@
         group: ansible-user
         mode: "0644"
       when: kubeconfig_stat.stat.exists and kubeconfig_stat.stat.pw_name != 'ansible-user'
+
+    - name: Setup kubectl on bastion
+      tasks:
+        import_role:
+        name: package
+      when: inventory_hostname == "192.168.1.1"
