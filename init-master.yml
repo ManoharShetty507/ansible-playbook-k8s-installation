@@ -12,48 +12,30 @@
     - name: Pull kubeadm config images
       command: "kubeadm config images pull"
 
-    - name: Check if Kubernetes is already initialized (kube-apiserver)
-      stat:
-        path: /etc/kubernetes/manifests/kube-apiserver.yaml
-      register: k8s_initialized
-
-    - name: Debug k8s_initialized existence
-      debug:
-        msg: "k8s_initialized exists: {{ k8s_initialized.stat.exists }}"
-
-    - name: Check if .kube folder exists
-      stat:
-        path: /home/ansible-user/.kube
-      register: kube_folder
-
-    - name: Debug .kube folder existence
-      debug:
-        msg: ".kube folder exists: {{ kube_folder.stat.exists }}"
-
-    - name: Create .kube directory
-      file:
-        path: /home/ansible-user/.kube
-        state: directory
-        mode: '0755'
-      when: not kube_folder.stat.exists
-
     - name: Initialize Kubernetes master node
       shell: "kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
       when: not k8s_initialized.stat.exists
-
-    - name: Check if Kubernetes is initialized
+      
+    - name: Check if /etc/kubernetes directory exists
       stat:
-        path: /home/ansible-user/.kube/init_done
-      register: k8s_initialized
+        path: /etc/kubernetes
+      register: kubernetes_dir
 
+    - name: Print status message based on directory existence
+      debug:
+        msg: "/etc/kubernetes folder {{ 'exists' if kubernetes_dir.stat.exists else 'does not exist' }}."
+
+    - name: Check if Kubernetes is already initialized (kube-apiserver)
+      stat:
+        path: /etc/kubernetes/manifests/kube-apiserver.yaml
+      register: k8s_initialized    
+        
     - name: Create .kube directory
       file:
         path: /home/ansible-user/.kube
         state: directory
         mode: '0755'
       when: not k8s_initialized.stat.exists
-
-
 
     - name: Copy kube config
       copy:
@@ -62,21 +44,10 @@
         mode: '0644'
       when: not k8s_initialized.stat.exists
 
-    - name: Create initialization marker file
-      file:
-        path: /home/ansible-user/.kube/init_done
-        state: touch
-      when: not k8s_initialized.stat.exists
-
     - name: Copy kubeconfig
       command: "sudo cp -i /etc/kubernetes/admin.conf /home/ansible-user/.kube/config"
       become_user: ansible-user
       when: not k8s_initialized.stat.exists
-
-    - name: Check ownership and permissions of config file
-      stat:
-        path: /home/ansible-user/.kube/config
-      register: kubeconfig_stat
 
     - name: Change ownership and permissions of config file on Ubuntu
       file:
