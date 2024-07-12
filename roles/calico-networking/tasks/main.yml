@@ -1,9 +1,0 @@
----
-- name: Check if Calico networking is installed
-  command: kubectl get pods -n kube-system | grep calico
-  register: calico_installed
-  ignore_errors: true
-
-- name: Apply Calico networking if not already applied
-  command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
-  when: calico_installed.rc != 0
