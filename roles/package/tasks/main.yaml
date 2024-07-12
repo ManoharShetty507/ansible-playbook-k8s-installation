@@ -1,7 +1,4 @@
-- name: Install kubectl on Kubernetes nodes
-  hosts: k8s_nodes
-  become: yes
-  tasks:
+---
     - name: Download kubectl
       get_url:
         url: https://s3.us-west-2.amazonaws.com/amazon-eks/1.30.0/2024-05-12/bin/linux/amd64/kubectl
@@ -12,6 +9,7 @@
       file:
         path: /usr/local/bin/kubectl
         mode: '0755'
+        state: file
 
     - name: Ensure $HOME/bin directory exists
       file:
@@ -26,25 +24,11 @@
         mode: '0755'
 
     - name: Ensure kubectl is in PATH
-      shell: 'export PATH=$HOME/bin:$PATH'
-      environment:
-        PATH: "{{ ansible_env.HOME }}/bin:{{ ansible_env.PATH }}"
+      lineinfile:
+        path: "{{ ansible_env.HOME }}/.bashrc"
+        line: 'export PATH=$HOME/bin:$PATH'
+        create: yes
 
-    - name: Reboot all the Kubernetes nodes
-      reboot:
-        post_reboot_delay: 60
-        reboot_timeout: 80
-        connect_timeout: 300
-        test_command: uptime
-
-    - name: Fetch kube config file from Kubernetes master to Ansible control node
-      hosts: local
-      tasks:
-        - name: Fetch kube config file from remote server to Ansible control node
-            nsible.builtin.fetch:
-            src: /home/ansible-user/.kube/config
-            dest: /path/on/ansible/control/node/config
-            flat: yes
 
     - name: Fetch kube config file from remote server to Ansible control node
       ansible.builtin.fetch:
@@ -53,8 +37,8 @@
         flat: yes
 
     - name: Set ownership and permissions of fetched config file on Ansible control node
-      ansible.builtin.file:
-        path: /home/ansible-user/.kube/config
+      file:
+        path: /path/on/ansible/control/node/config
         owner: ansible-user
         group: ansible-user
         mode: "0644"
