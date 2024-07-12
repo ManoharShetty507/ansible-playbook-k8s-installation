@@ -1,5 +1,9 @@
+
 ---
+#- import_playbook: setup_kubectl.yaml hostlist=local
+- import_playbook: k8s-setup.yml  hostlist=master
+- import_playbook: init-master.yml  hostlist=master
+  #- import_playbook: join-node.yml hostlist=worker
 - import_playbook: setup_kubectl.yaml hostlist=local
-#- import_playbook: k8s-setup.yml  hostlist=master
-#- import_playbook: init-master.yml  hostlist=master
-#- import_playbook: join-node.yml hostlist=worker
+- import_playbook: configure_cni.yaml hostlist=master
+
