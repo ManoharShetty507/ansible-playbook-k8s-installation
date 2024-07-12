@@ -42,7 +42,9 @@
       file:
         path: "/home/ansible-user/.kube"
         state: directory
-        owner: /home/amsible-user
+        owner: ansible-user
+        group: ansible-user
+        mode: '0755'
 
     - name: Create .kube directory
       file:
@@ -56,7 +58,9 @@
       copy:
         src: /etc/kubernetes/admin.conf
         dest: /home/ansible-user/.kube/config
-        owner: /home/ansible-user/
+        owner: ansible-user
+        group: ansible-user
+        mode: '0644'
         remote_src: yes
 
     - name: Create .kube folder
