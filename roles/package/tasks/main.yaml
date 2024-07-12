@@ -1,30 +1,20 @@
----
-- name: Add Kubernetes apt repository GPG key
-  ansible.builtin.command: curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-  become: yes
+    - name: Install kubectl
+      apt:
+        name: kubectl
+        state: present
 
-- name: Add Kubernetes apt repository
-  ansible.builtin.apt_repository:
-    repo: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
-    state: present
-  become: yes
+    - name: Reboot all the Kubernetes nodes
+      reboot:
+        post_reboot_delay: 60
+        reboot_timeout: 80
+        connect_timeout: 300
+        test_command: uptime
 
-- name: Update apt package index
-  ansible.builtin.apt:
-    update_cache: yes
-  become: yes
-
-- name: Install kubectl
-  ansible.builtin.apt:
-    name: kubectl
-    state: present
-  become: yes
-
-- name: Fetch kube config file from remote server to Ansible control node
-  ansible.builtin.fetch:
-    src: /home/ansible-user/.kube/config
-    dest: /path/on/ansible/control/node/config
-    flat: yes
+    - name: Fetch kube config file from remote server to Ansible control node
+      ansible.builtin.fetch:
+        src: /home/ansible-user/.kube/config
+        dest: /path/on/ansible/control/node/config
+        flat: yes
 
 - name: Set ownership and permissions of fetched config file on Ansible control node
   ansible.builtin.file:
