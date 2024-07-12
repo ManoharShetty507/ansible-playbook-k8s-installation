@@ -14,7 +14,7 @@
 
     - name: Check if Kubernetes is already initialized
       stat:
-      path: /etc/kubernetes/admin.conf
+        path: /etc/kubernetes/admin.conf
       register: k8s_initialized
 
     - name: Initialize Kubernetes master node
@@ -22,12 +22,7 @@
       when: not k8s_initialized.stat.exists
 
 
-    - pause:
-      prompt: "Validate kubeadm init"
 
-    - name: Store init output
-      action: copy content="{{ rslt.stdout }}" dest="/etc/kubernetes/kubeadm-init.stdout"
-  
     - name: Check if /etc/kubernetes directory exists
       stat:
         path: /etc/kubernetes
@@ -40,13 +35,14 @@
     - name: Check if Kubernetes is already initialized (kube-apiserver)
       stat:
         path: /etc/kubernetes/manifests/kube-apiserver.yaml
-      register: k8s_initialized    
+      register: k8s_initialized
 
     - name: Create .kube folder
+      become: yes
       file:
-      path: "/home/ansible-user/.kube"
-      state: directory
-      owner: "{{ ansible_ssh_user }}"      
+        path: "/home/ansible-user/.kube"
+        state: directory
+        owner: /home/amsible-user
 
     - name: Create .kube directory
       file:
@@ -56,32 +52,26 @@
       when: not k8s_initialized.stat.exists
 
     - name: Copy admin.conf to .kube folder
+      become: yes
       copy:
-       src: /etc/kubernetes/admin.conf
-      dest: /home/ansible-user//.kube/config
-      owner: /home/ansible-user/
-      remote_src: yes
+        src: /etc/kubernetes/admin.conf
+        dest: /home/ansible-user/.kube/config
+        owner: /home/ansible-user/
+        remote_src: yes
 
     - name: Create .kube folder
       file:
-      path: "/root/.kube"
-      state: directory
-      owner: "root"
+        path: "/root/.kube"
+        state: directory
+        owner: "root"
 
     - name: Copy admin.conf to .kube folder
       copy:
-      src: /etc/kubernetes/admin.conf
-      dest: "/root/.kube/config"
-      owner: "root"
-      remote_src: yes    
+        src: /etc/kubernetes/admin.conf
+        dest: "/root/.kube/config"
+        owner: "root"
+        remote_src: yes
 
-    - name: Change ownership and permissions of config file on Ubuntu
-      file:
-        path: /home/ansible-user/.kube/config
-        owner: ansible-user
-        group: ansible-user
-        mode: "0644"
-      when: kubeconfig_stat.stat.exists and kubeconfig_stat.stat.pw_name != 'ansible-user'
 
     - name: Setup kubectl on bastion
       import_role:
