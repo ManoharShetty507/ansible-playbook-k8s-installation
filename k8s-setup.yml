@@ -10,4 +10,3 @@
     - name: Import Helm role
       import_role:
         name: helm
-
