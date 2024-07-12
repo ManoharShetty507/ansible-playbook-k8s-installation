@@ -1,87 +1,4 @@
 ---
-    - name: Enabling kubelet
-      service:
-        name: kubelet
-        state: started
-        enabled: yes
-
-    - name: Pull kubeadm config images
-      command: "kubeadm config images pull"
-
-    - name: Check if Kubernetes is already initialized
-      stat:
-        path: /etc/kubernetes/admin.conf
-      register: k8s_initialized
-
-    - name: Initialize Kubernetes master node
-      shell: "kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
-      when: not k8s_initialized.stat.exists
-
-
-
-    - name: Check if /etc/kubernetes directory exists
-      stat:
-        path: /etc/kubernetes
-      register: kubernetes_dir
-
-    - name: Print status message based on directory existence
-      debug:
-        msg: "/etc/kubernetes folder {{ 'exists' if kubernetes_dir.stat.exists else 'does not exist' }}."
-
-    - name: Check if Kubernetes is already initialized (kube-apiserver)
-      stat:
-        path: /etc/kubernetes/manifests/kube-apiserver.yaml
-      register: k8s_initialized
-
-    - name: Create .kube folder
-      become: yes
-      file:
-        path: "/home/ansible-user/.kube"
-        state: directory
-        owner: ansible-user
-        group: ansible-user
-        mode: '0755'
-
-    - name: Create .kube directory
-      file:
-        path: /home/ansible-user/.kube
-        state: directory
-        mode: '0755'
-      when: not k8s_initialized.stat.exists
-
-    - name: Copy admin.conf to .kube folder
-      become: yes
-      copy:
-        src: /etc/kubernetes/admin.conf
-        dest: /home/ansible-user/.kube/config
-        owner: ansible-user
-        group: ansible-user
-        mode: '0644'
-        remote_src: yes
-
-    - name: Create .kube folder
-      file:
-        path: "/root/.kube"
-        state: directory
-        owner: "root"
-
-    - name: Copy admin.conf to .kube folder
-      copy:
-        src: /etc/kubernetes/admin.conf
-        dest: "/root/.kube/config"
-        owner: "root"
-        remote_src: yes
-
-    - name: Setup kubectl on bastion
-      import_role:
-        name: package
-      when: ansible_facts['default_ipv4']['address'] == "13.127.171.0"
-
-    - name: Import Calico Networking role
-      import_role:
-        name: calico-networking
-ansible-user@ip-10-20-1-125:~/ansible-playbook-k8s-installation$ cat init-master.yml
----
 - name: Generate kubeadm join command for Master node
   hosts: k8s_node
   become: yes
@@ -104,8 +21,6 @@ ansible-user@ip-10-20-1-125:~/ansible-playbook-k8s-installation$ cat init-master
       shell: "kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
       when: not k8s_initialized.stat.exists
 
-
-
     - name: Check if /etc/kubernetes directory exists
       stat:
         path: /etc/kubernetes
@@ -118,9 +33,9 @@ ansible-user@ip-10-20-1-125:~/ansible-playbook-k8s-installation$ cat init-master
     - name: Check if Kubernetes is already initialized (kube-apiserver)
       stat:
         path: /etc/kubernetes/manifests/kube-apiserver.yaml
-      register: k8s_initialized
+      register: k8s_apiserver_initialized
 
-    - name: Create .kube folder
+    - name: Create .kube folder for ansible-user
       become: yes
       file:
         path: "/home/ansible-user/.kube"
@@ -128,15 +43,9 @@ ansible-user@ip-10-20-1-125:~/ansible-playbook-k8s-installation$ cat init-master
         owner: ansible-user
         group: ansible-user
         mode: '0755'
-
-    - name: Create .kube directory
-      file:
-        path: /home/ansible-user/.kube
-        state: directory
-        mode: '0755'
       when: not k8s_initialized.stat.exists
 
-    - name: Copy admin.conf to .kube folder
+    - name: Copy admin.conf to .kube folder for ansible-user
       become: yes
       copy:
         src: /etc/kubernetes/admin.conf
@@ -145,25 +54,21 @@ ansible-user@ip-10-20-1-125:~/ansible-playbook-k8s-installation$ cat init-master
         group: ansible-user
         mode: '0644'
         remote_src: yes
+      when: not k8s_initialized.stat.exists
 
-    - name: Create .kube folder
+    - name: Create .kube folder for root
       file:
         path: "/root/.kube"
         state: directory
         owner: "root"
+        mode: '0755'
 
-    - name: Copy admin.conf to .kube folder
+    - name: Copy admin.conf to .kube folder for root
       copy:
         src: /etc/kubernetes/admin.conf
         dest: "/root/.kube/config"
         owner: "root"
+        mode: '0644'
         remote_src: yes
 
-    - name: Setup kubectl on bastion
-      import_role:
-        name: package
-      when: ansible_facts['default_ipv4']['address'] == "13.127.171.0"
 
-    - name: Import Calico Networking role
-      import_role:
-        name: calico-networking
