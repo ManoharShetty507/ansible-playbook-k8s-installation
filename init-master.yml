@@ -1,8 +1,4 @@
 ---
-- name: Generate kubeadm join command for Master node
-  hosts: k8s_node
-  become: yes
-  tasks:
     - name: Enabling kubelet
       service:
         name: kubelet
