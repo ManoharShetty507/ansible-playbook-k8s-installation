@@ -1,48 +1,64 @@
----
-- name: install kubectl on bastion
-  hosts: local
+- name: Download kubectl
+  get_url:
+    url: https://s3.us-west-2.amazonaws.com/amazon-eks/1.30.0/2024-05-12/bin/linux/amd64/kubectl
+    dest: /usr/local/bin/kubectl
+    mode: "0755"
+
+- name: Ensure kubectl is executable
+  file:
+    path: /usr/local/bin/kubectl
+    mode: "0755"
+    state: file
+
+- name: Ensure $HOME/bin directory exists
+  file:
+    path: "{{ ansible_env.HOME }}/bin"
+    state: directory
+    mode: "0755"
+
+- name: Copy kubectl to $HOME/bin
+  copy:
+    src: /usr/local/bin/kubectl
+    dest: "{{ ansible_env.HOME }}/bin/kubectl"
+    mode: "0755"
+
+- name: Ensure kubectl is in PATH
+  lineinfile:
+    path: "{{ ansible_env.HOME }}/.bashrc"
+    line: "export PATH=$HOME/bin:$PATH"
+    create: yes
+
+
+- name: Create .kube directory
+  file:
+    path: /home/ansible-user/.kube
+    state: directory
+    owner: ansible-user
+    group: ansible-user
+    mode: '0755'
+
+- name: Copy admin.conf to /tmp on remote node if it exists
   become: yes
-  tasks:
-    - name: Download kubectl
-      get_url:
-        url: https://s3.us-west-2.amazonaws.com/amazon-eks/1.30.0/2024-05-12/bin/linux/amd64/kubectl
-        dest: /usr/local/bin/kubectl
-        mode: "0755"
+  ansible.builtin.command: cp /etc/kubernetes/admin.conf /tmp/admin.conf
 
-    - name: Ensure kubectl is executable
-      file:
-        path: /usr/local/bin/kubectl
-        mode: "0755"
-        state: file
+- name: Fetch admin.conf from remote node to local machine
+  ansible.builtin.fetch:
+    src: /tmp/admin.conf
+    dest: /home/ansible-user/.kube/config
+    flat: yes
+  when: admin_conf_stat.stat.exists
 
-    - name: Ensure $HOME/bin directory exists
-      file:
-        path: "{{ ansible_env.HOME }}/bin"
-        state: directory
-        mode: "0755"
 
-    - name: Copy kubectl to $HOME/bin
-      copy:
-        src: /usr/local/bin/kubectl
-        dest: "{{ ansible_env.HOME }}/bin/kubectl"
-        mode: "0755"
+- name: Clean up temporary admin.conf on remote node
+  ansible.builtin.file:
+     path: /tmp/admin.conf
+     state: absent
+  when: admin_conf_stat.stat.exists
 
-    - name: Ensure kubectl is in PATH
-      lineinfile:
-        path: "{{ ansible_env.HOME }}/.bashrc"
-        line: "export PATH=$HOME/bin:$PATH"
-        create: yes
-
-    - name: Fetch kube config file from remote server to Ansible control node
-      ansible.builtin.fetch:
-        src: /home/ansible-user/.kube/config
-        dest: /home/ansible-user/.kube/config
-        flat: yes
-
-    - name: Set ownership and permissions of fetched config file on Ansible control node
-      file:
-        path: /home/ansible-user/.kube/config
-        owner: ansible-user
-        group: ansible-user
-        mode: "0644"
-        state: file
+- name: Set ownership and permissions of fetched config file on Ansible control node
+  file:
+    path: /home/ansible-user/.kube/config
+    owner: ansible-user
+    group: ansible-user
+    mode: "0644"
+    state: file
