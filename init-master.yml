@@ -9,8 +9,14 @@
         state: started
         enabled: yes
 
-    - name: Pull kubeadm config images
+    - name: Check if kubeadm config images are pulled
+      command: "kubeadm config images list"
+      register: kubeadm_images
+      changed_when: false  # Mark this task as not changed if the command output is as expected
+
+    - name: Pull kubeadm config images if not already pulled
       command: "kubeadm config images pull"
+      when: kubeadm_images.stdout.find('image1') == -1
 
     - name: Check if Kubernetes is already initialized
       stat:
@@ -71,4 +77,8 @@
         mode: '0644'
         remote_src: yes
 
-
+    - name: Copy admin.conf
+      become: yes
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /tmp/admin.conf
