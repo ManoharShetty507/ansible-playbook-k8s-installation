@@ -37,9 +37,17 @@
     group: ansible-user
     mode: '0755'
 
-- name: Copy admin.conf to /tmp on remote node if it exists
-  become: yes
-  ansible.builtin.command: cp /etc/kubernetes/admin.conf /tmp/admin.conf
+- name: Check if admin.conf already exists locally
+  stat:
+      path: /tmp/admin.conf  # Path where you want to store admin.conf locally
+  register: admin_conf_stat
+
+- name: Fetch admin.conf from remote node if not already fetched
+  fetch:
+    src: /etc/kubernetes/admin.conf  # Remote file path
+    dest: /tmp/admin.conf  # Local destination path
+    flat: yes  # Ensures the file is saved without the directory structure
+  when: not admin_conf_stat.stat.exists
 
 - name: Fetch admin.conf from remote node to local machine
   ansible.builtin.fetch:
