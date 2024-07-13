@@ -1,6 +1,5 @@
 ---
----
-- name: install kubectl on bastion 
+- name: install kubectl on bastion
   hosts: local
   become: yes
   tasks:
@@ -8,42 +7,41 @@
       get_url:
         url: https://s3.us-west-2.amazonaws.com/amazon-eks/1.30.0/2024-05-12/bin/linux/amd64/kubectl
         dest: /usr/local/bin/kubectl
-        mode: '0755'
+        mode: "0755"
 
     - name: Ensure kubectl is executable
       file:
         path: /usr/local/bin/kubectl
-        mode: '0755'
+        mode: "0755"
         state: file
 
     - name: Ensure $HOME/bin directory exists
       file:
         path: "{{ ansible_env.HOME }}/bin"
         state: directory
-        mode: '0755'
+        mode: "0755"
 
     - name: Copy kubectl to $HOME/bin
       copy:
         src: /usr/local/bin/kubectl
         dest: "{{ ansible_env.HOME }}/bin/kubectl"
-        mode: '0755'
+        mode: "0755"
 
     - name: Ensure kubectl is in PATH
       lineinfile:
         path: "{{ ansible_env.HOME }}/.bashrc"
-        line: 'export PATH=$HOME/bin:$PATH'
+        line: "export PATH=$HOME/bin:$PATH"
         create: yes
-
 
     - name: Fetch kube config file from remote server to Ansible control node
       ansible.builtin.fetch:
         src: /home/ansible-user/.kube/config
-        dest: /path/on/ansible/control/node/config
+        dest: /home/ansible-user/.kube/config
         flat: yes
 
     - name: Set ownership and permissions of fetched config file on Ansible control node
       file:
-        path: /path/on/ansible/control/node/config
+        path: /home/ansible-user/.kube/config
         owner: ansible-user
         group: ansible-user
         mode: "0644"
