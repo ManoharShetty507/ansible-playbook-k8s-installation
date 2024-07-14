@@ -82,3 +82,5 @@
       copy:
         src: /etc/kubernetes/admin.conf
         dest: /tmp/admin.conf
+        remote_src: yes
+
