@@ -84,3 +84,9 @@
         dest: /tmp/admin.conf
         remote_src: yes
 
+    - name: Change permissions of admin.conf to ansible-user readable
+      file:
+        path: /etc/kubernetes/admin.conf
+        owner: ansible-user
+        group: ansible-user
+        mode: '0644'
