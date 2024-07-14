@@ -1,9 +1,4 @@
----
-- name: Fetch admin.conf from managed node to controller
-  hosts: k8s_node
-  become: true
 
-  tasks:
     - name: Check if admin.conf already exists on the controller
       stat:
         path: /etc/kubernetes/admin.conf
