@@ -1,33 +1,3 @@
-- name: Download kubectl
-  get_url:
-    url: https://s3.us-west-2.amazonaws.com/amazon-eks/1.30.0/2024-05-12/bin/linux/amd64/kubectl
-    dest: /usr/local/bin/kubectl
-    mode: "0755"
-
-- name: Ensure kubectl is executable
-  file:
-    path: /usr/local/bin/kubectl
-    mode: "0755"
-    state: file
-
-- name: Ensure $HOME/bin directory exists
-  file:
-    path: "{{ ansible_env.HOME }}/bin"
-    state: directory
-    mode: "0755"
-
-- name: Copy kubectl to $HOME/bin
-  copy:
-    src: /usr/local/bin/kubectl
-    dest: "{{ ansible_env.HOME }}/bin/kubectl"
-    mode: "0755"
-
-- name: Ensure kubectl is in PATH
-  lineinfile:
-    path: "{{ ansible_env.HOME }}/.bashrc"
-    line: "export PATH=$HOME/bin:$PATH"
-    create: yes
-
 
 - name: Create .kube directory
   file:
@@ -43,7 +13,10 @@
   register: admin_conf_stat
 
 - name: Fetch admin.conf from remote node if not already fetched
+  delegate_to: control-plane
+  become: yes
   fetch:
+    remote_src: yes
     src: /etc/kubernetes/admin.conf  # Remote file path
     dest: /tmp/admin.conf  # Local destination path
     flat: yes  # Ensures the file is saved without the directory structure
