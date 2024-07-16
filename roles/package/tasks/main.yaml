@@ -52,15 +52,6 @@
     flat: yes  # Ensures the file is saved without the directory structure
   when: not admin_conf_stat.stat.exists
 
-- name: Fetch admin.conf from remote node to local machine
-  delegate_to: control-plane
-  ansible.builtin.fetch:
-    src: /tmp/admin.conf
-    dest: /home/ansible-user/.kube/config
-    flat: yes
-  when: admin_conf_stat.stat.exists
-
-
 - name: Clean up temporary admin.conf on remote node
   delegate_to: control-plane
   ansible.builtin.file:
