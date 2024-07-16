@@ -38,7 +38,6 @@
     mode: '0755'
 
 - name: Check if admin.conf already exists locally
-  delegate_to: control-plane
   stat:
       path: /tmp/admin.conf  # Path where you want to store admin.conf locally
   register: admin_conf_stat
