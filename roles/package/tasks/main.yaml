@@ -61,6 +61,7 @@
 
 
 - name: Clean up temporary admin.conf on remote node
+  delegate_to: control-plane
   ansible.builtin.file:
      path: /tmp/admin.conf
      state: absent
