@@ -6,4 +6,4 @@
     - name: Setup kubectl on bastion
       import_role:
         name: package
-      when: ansible_host == "3.109.217.78"
+      when: ansible_host == "52.66.196.23"
