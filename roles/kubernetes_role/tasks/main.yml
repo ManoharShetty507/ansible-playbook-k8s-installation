@@ -54,23 +54,38 @@
     - "gnupg"
     - "gpg"
 
-- name: Import GPG key for Kubernetes repository if not exists
-  shell: "curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg"
+- name: Ensure apt-transport-https is installed
+  apt:
+    name: apt-transport-https
+    state: present
+
+- name: Add Kubernetes APT key
+  ansible.builtin.shell: |
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
   args:
     creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
-- name: Ensure Kubernetes sources.list.d directory exists
-  file:
-    path: /etc/apt/sources.list.d
-    state: directory
-
-- name: Add Kubernetes repository entry to sources.list.d
-  shell: "echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list"
+- name: Add Kubernetes APT repository
+  ansible.builtin.shell: |
+    echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
   args:
     creates: /etc/apt/sources.list.d/kubernetes.list
 
-- name: Install Kubernetes tools
-  shell: "sudo apt-get update && sudo apt-get install -y kubelet=1.29.2-00 kubeadm=1.29.2-00 kubectl=1.29.2-00 && sudo apt-mark hold kubelet kubeadm kubectl"
+- name: Update APT package index
+  apt:
+    update_cache: yes
+
+- name: Install specific versions of kubelet, kubeadm, and kubectl
+  apt:
+    name:
+      - kubelet=1.28.7-1.1
+      - kubeadm=1.28.7-1.1
+      - kubectl=1.28.7-1.1
+    state: present
+
+- name: Mark kubelet, kubeadm, and kubectl to hold
+  ansible.builtin.shell: |
+    sudo apt-mark hold kubelet kubeadm kubectl
 
 - name: Enable and start kubelet service
   systemd:
