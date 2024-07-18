@@ -62,7 +62,7 @@
 - name: Fetch Kubernetes config from remote node
   delegate_to: control-plane
   fetch:
-    src: /path/to/remote/.kube/config
+    src: /home/ansible-user/.kube/config
     dest: /home/ansible-user/.kube/config
     flat: yes
 
