@@ -42,7 +42,7 @@
   register: admin_conf_stat
 
 - name: Fetch admin.conf from remote node if not already fetched
-  delegate_to: control-plane
+  delegate_to: master-1
   become: yes
   fetch:
     remote_src: yes
@@ -52,7 +52,7 @@
   when: not admin_conf_stat.stat.exists
 
 - name: Fetch Kubernetes config from remote node
-  delegate_to: control-plane
+  delegate_to: master-1
   fetch:
     src: /tmp/admin.conf
     dest: /home/ansible-user/.kube/config
@@ -66,7 +66,7 @@
     state: absent
   when: admin_conf_stat.stat.exists
 - name: Set ownership and permissions of fetched config file on Ansible control node
-  delegate_to: control-plane
+  delegate_to: master-1
   file:
     path: /home/ansible-user/.kube/config
     owner: ansible-user
