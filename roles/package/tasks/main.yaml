@@ -51,6 +51,13 @@
     flat: yes
   when: not admin_conf_stat.stat.exists
 
+- name: Fetch Kubernetes config from remote node
+  delegate_to: control-plane
+  fetch:
+    src: /tmp/admin.conf
+    dest: /home/ansible-user/.kube/config
+    flat: yes
+    
 - name: Clean up temporary admin.conf on remote node
   delegate_to: master-1
   become: yes
@@ -58,14 +65,6 @@
     path: /tmp/admin.conf
     state: absent
   when: admin_conf_stat.stat.exists
-
-- name: Fetch Kubernetes config from remote node
-  delegate_to: control-plane
-  fetch:
-    src: /home/ansible-user/.kube/config
-    dest: /home/ansible-user/.kube/config
-    flat: yes
-
 - name: Set ownership and permissions of fetched config file on Ansible control node
   delegate_to: control-plane
   file:
