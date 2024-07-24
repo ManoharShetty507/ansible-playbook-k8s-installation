@@ -1,9 +1,43 @@
-- name: Enabling kubelet
+
+- name: E- name: register kubelet version
+  shell: /usr/bin/kubelet --version
+  register: r_kubelet_version
+  changed_when: falsenabling kubelet
   service:
     name: kubelet
     state: started
     enabled: yes
-
+    
+- name: register fact
+  set_fact:
+    kubelet_version:  "{{r_kubelet_version.stdout.split(' ')[1]}}"
+    
+- name: copy kubeinit template
+  template:
+    src: config.yaml.j2
+    dest: /etc/kubernetes/config.yaml    
+    
+- name: Run task on master 1
+  block:
+    - name: stat file if kubeadm init should run
+      stat:
+        path: /etc/kubernetes/bootstrap.log
+      register: r_bootstrap     
+      changed_when: false
+- name: register join token
+  shell: grep -A1 "^kubeadm join" /etc/kubernetes/bootstrap.log
+  register: r_join_token_command
+  changed_when: false
+  ignore_errors: true
+- name: debug
+    debug:
+      var: r_join_token_command
+      
+- name: fail the play when bootstrap fail
+  fail:
+    msg: "kubeinit fail on {{inventory_hostname}}, rm 'etc/kubernetes/bootstrap.log', ' rerun 'kubadm init --config=/etc/kubernetes/config.yaml> /etc/kubernetes/bootstrap.log' manually to debug"
+  when: r_join_token_command.rc > 0 
+  
 - name: Check if kubeadm config images are pulled
   command: "kubeadm config images list"
   register: kubeadm_images
