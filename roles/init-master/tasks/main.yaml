@@ -51,19 +51,7 @@
   stat:
     path: /etc/kubernetes/admin.conf
   register: k8s_initialized
-
-- name: Initialize Kubernetes master node
-  shell: kubeadm init --control-plane-endpoint "LOAD_BALANCER_IP:LOAD_BALANCER_PORT" --upload-certs 
-  when: not k8s_initialized.stat.exists
-   when: r_bootstrap.stat.exists == false
-- name: register join token
-  shell: grep -A1 "^kubeadm join" /etc/kubernetes/bootstrap.log
-  register: r_join_token_command
-  changed_when: false
-  ignore_errors: true
-- name: debug
-   debug:
-    var: r_join_token_command
+   
 - name: Check if /etc/kubernetes directory exists
   stat:
     path: /etc/kubernetes
