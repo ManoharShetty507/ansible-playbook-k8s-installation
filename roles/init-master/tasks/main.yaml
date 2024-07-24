@@ -1,13 +1,14 @@
-
-- name: E- name: register kubelet version
+- name: Register kubelet version
   shell: /usr/bin/kubelet --version
   register: r_kubelet_version
-  changed_when: falsenabling kubelet
+  changed_when: false
+
+- name: Enable and start kubelet service
   service:
     name: kubelet
     state: started
     enabled: yes
-    
+
 - name: register fact
   set_fact:
     kubelet_version:  "{{r_kubelet_version.stdout.split(' ')[1]}}"
