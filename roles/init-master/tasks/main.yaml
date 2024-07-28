@@ -4,9 +4,10 @@
   service:
     name: kubelet
     state: started
-    enabled: yes    - name: Check kubelet service status
-      shell: systemctl status kubelet
-      register: kubelet_status
+    enabled: yes    
+- name: Check kubelet service status
+  shell: systemctl status kubelet
+  register: kubelet_status
 
 - name: Display kubelet service status
   debug:
@@ -24,12 +25,7 @@
   command: "kubeadm config images list"
   register: kubeadm_images
   changed_when: false # Mark this task as not changed if the command output is as expected
-
-- name: Setup Kubernetes Master Node
-  hosts: master
-  become: yes
-  vars:
-  tasks:
+  
 - name: Pull the correct sandbox image version
   command: ctr images pull registry.k8s.io/pause:3.9
   register: pull_sandbox_image
