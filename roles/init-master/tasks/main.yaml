@@ -4,7 +4,17 @@
   service:
     name: kubelet
     state: started
-    enabled: yes
+    enabled: yes    - name: Check kubelet service status
+      shell: systemctl status kubelet
+      register: kubelet_status
+
+- name: Display kubelet service status
+  debug:
+    var: kubelet_status.stdout_lines
+
+- name: Check kubelet logs
+  shell: journalctl -xeu kubelet --no-pager
+  register: kubelet_logs
   
 - name: Check if kubeadm config images are pulled
   command: "kubeadm config images list"
