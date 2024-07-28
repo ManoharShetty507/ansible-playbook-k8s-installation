@@ -25,6 +25,39 @@
   register: kubeadm_images
   changed_when: false # Mark this task as not changed if the command output is as expected
 
+- name: Setup Kubernetes Master Node
+  hosts: master
+  become: yes
+  vars:
+  tasks:
+- name: Pull the correct sandbox image version
+  command: ctr images pull registry.k8s.io/pause:3.9
+  register: pull_sandbox_image
+  ignore_errors: yes
+
+- name: Set cgroup driver in kubelet configuration
+  lineinfile:
+    path: /etc/default/kubelet
+    line: 'KUBELET_EXTRA_ARGS="--cgroup-driver=systemd"'
+    create: yes
+
+ - name: Restart kubelet service to apply cgroup changes
+  systemd:
+    name: kubelet
+    state: restarted
+    enabled: yes
+
+ - name: Check kubelet status
+  shell: systemctl status kubelet
+  register: kubelet_status
+  failed_when: "'running' not in kubelet_status.stdout"
+  ignore_errors: yes
+
+ - name: Print kubelet status for debugging
+  debug:
+    var: kubelet_status
+  when: kubelet_status.failed
+      
 - name: Pull kubeadm config images if not already pulled
   command: "kubeadm config images pull"
   when: kubeadm_images.stdout.find('image1') == -1
