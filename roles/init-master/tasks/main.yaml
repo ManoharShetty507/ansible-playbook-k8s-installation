@@ -1,5 +1,3 @@
-
-
 - name: Enable and start kubelet service
   service:
     name: kubelet
@@ -9,6 +7,30 @@
   shell: systemctl status kubelet
   register: kubelet_status
 
+- name: Disable swap
+  command: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+- name: Remove swap entries from /etc/fstab
+  replace:
+    path: /etc/fstab
+    regexp: '^.*swap.*$'
+    replace: ''
+    when: ansible_swaptotal_mb > 0
+
+- name: Ensure swap is disabled
+  mount:
+    name: swap
+    state: absent
+    when: ansible_swaptotal_mb > 0
+
+- name: Reboot the system to apply changes
+  reboot:
+    msg: "Reboot initiated by Ansible to disable swap"
+    connect_timeout: 5
+    reboot_timeout: 600
+  when: ansible_swaptotal_mb > 0
+  
 - name: Display kubelet service status
   debug:
     var: kubelet_status.stdout_lines
