@@ -15,7 +15,11 @@
 - name: Check kubelet logs
   shell: journalctl -xeu kubelet --no-pager
   register: kubelet_logs
-  
+
+- name: Display kubelet logs
+  debug:
+    var: kubelet_logs.stdout_lines
+        
 - name: Check if kubeadm config images are pulled
   command: "kubeadm config images list"
   register: kubeadm_images
