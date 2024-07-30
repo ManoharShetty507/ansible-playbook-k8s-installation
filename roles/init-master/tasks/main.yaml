@@ -9,7 +9,8 @@
     path: /etc/fstab
     regexp: '^.*swap.*$'
     replace: ''
-    when: ansible_swaptotal_mb > 0
+  when: ansible_swaptotal_mb > 0
+
 
 - name: Ensure swap is disabled
   mount:
