@@ -1,53 +1,53 @@
 ---
+- name: Install containerd version v1.6.33
+  apt:
+    name: containerd=1.6.33-1
+    state: present
+    update_cache: yes
+
 - name: Create containerd modules configuration
-      copy:
-        content: |
-          overlay
-          br_netfilter
-        dest: /etc/modules-load.d/containerd.conf
-      notify: Reload modules
+  copy:
+    content: |
+      overlay
+      br_netfilter
+    dest: /etc/modules-load.d/containerd.conf
+  notify: Reload modules
 
-    - name: Load containerd modules
-      command: modprobe {{ item }}
-      with_items:
-        - overlay
-        - br_netfilter
+- name: Load containerd modules
+  command: modprobe {{ item }}
+  with_items:
+    - overlay
+    - br_netfilter
 
-    - name: Setup sysctl params for Kubernetes CRI
-      copy:
-        content: |
-          net.bridge.bridge-nf-call-iptables  = 1
-          net.ipv4.ip_forward                 = 1
-          net.bridge.bridge-nf-call-ip6tables = 1
-        dest: /etc/sysctl.d/99-kubernetes-cri.conf
-      notify: Apply sysctl params
+- name: Setup sysctl params for Kubernetes CRI
+  copy:
+    content: |
+      net.bridge.bridge-nf-call-iptables  = 1
+      net.ipv4.ip_forward                 = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+    dest: /etc/sysctl.d/99-kubernetes-cri.conf
+  notify: Apply sysctl params
 
-    - name: Install containerd
-      apt:
-        name: containerd
-        state: present
-        update_cache: yes
+- name: Create containerd configuration
+  command: containerd config default
+  register: containerd_config
 
-    - name: Create containerd configuration
-      command: containerd config default
-      register: containerd_config
+- name: Write containerd configuration
+  copy:
+    content: "{{ containerd_config.stdout }}"
+    dest: /etc/containerd/config.toml
 
-    - name: Write containerd configuration
-      copy:
-        content: "{{ containerd_config.stdout }}"
-        dest: /etc/containerd/config.toml
+- name: Restart containerd
+  service:
+    name: containerd
+    state: restarted
 
-    - name: Restart containerd
-      service:
-        name: containerd
-        state: restarted
+handlers:
+  - name: Reload modules
+    command: sudo modprobe {{ item }}
+    with_items:
+      - overlay
+      - br_netfilter
 
-  handlers:
-    - name: Reload modules
-      command: sudo modprobe {{ item }}
-      with_items:
-        - overlay
-        - br_netfilter
-
-    - name: Apply sysctl params
-      command: sysctl --system
+  - name: Apply sysctl params
+    command: sysctl --system
