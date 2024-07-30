@@ -1,11 +1,4 @@
-- name: Enable and start kubelet service
-  service:
-    name: kubelet
-    state: started
-    enabled: yes    
-- name: Check kubelet service status
-  shell: systemctl status kubelet
-  register: kubelet_status
+
 
 - name: Disable swap
   command: swapoff -a
