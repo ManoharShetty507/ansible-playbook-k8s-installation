@@ -14,12 +14,27 @@
   when: ansible_swaptotal_mb > 0
 
 
+- name: Gather facts
+  ansible.builtin.setup:
 
-- name: Ensure swap is disabled
+- name: Ensure swap is not mounted
+  command: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+- name: Remove swap entries from /etc/fstab
+  replace:
+    path: /etc/fstab
+    regexp: '^.*swap.*$'
+    replace: ''
+  when: ansible_swaptotal_mb > 0
+
+- name: Ensure swap is disabled in mount
   mount:
-    name: swap
+    name: none
+    path: swap
     state: absent
-    when: ansible_swaptotal_mb > 0
+  when: ansible_swaptotal_mb > 0
+
 
 - name: Reboot the system to apply changes
   reboot:
