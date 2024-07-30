@@ -1,4 +1,9 @@
 ---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+
+    
 - name: Install containerd version v1.6.33
   apt:
     name: containerd=1.6.33-1
@@ -42,6 +47,10 @@
     name: containerd
     state: restarted
 
+- name: Ensure containerd is started and enabled at boot.
+  service:
+    name: containerd
+
 handlers:
   - name: Reload modules
     command: sudo modprobe {{ item }}
@@ -51,3 +60,4 @@ handlers:
 
   - name: Apply sysctl params
     command: sysctl --system
+
