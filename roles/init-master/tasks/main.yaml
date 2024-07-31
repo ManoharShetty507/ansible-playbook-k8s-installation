@@ -101,13 +101,11 @@
   template:
     src: templates/kubeadm-config.yaml.j2
     dest: /etc/kubernetes/kubeadm-config.yaml
-  
-- name: Initialize the Kubernetes control plane
-  shell: "kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem --control-plane-endpoint '{{ LOAD_BALANCER_IP }}:{{ LOAD_BALANCER_PORT }}' --upload-certs"
-  args:
-    executable: /bin/bash
-  when: not k8s_initialized.stat.exists
-  
+    
+- name: Initialize Kubernetes control plane
+  command: >
+    kubeadm init --config /etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=NumCPU,Mem 
+    when: not k8s_initialized.stat.exists
 - name: Check if /etc/kubernetes directory exists
   stat:
     path: /etc/kubernetes
