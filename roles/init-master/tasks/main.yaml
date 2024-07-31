@@ -97,6 +97,11 @@
     path: /etc/kubernetes/admin.conf
   register: k8s_initialized
   
+- name: Create kubeadm configuration file
+  template:
+    src: templates/kubeadm-config.yaml.j2
+    dest: /etc/kubernetes/kubeadm-config.yaml
+  
 - name: Initialize the Kubernetes control plane
   shell: "kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem --control-plane-endpoint '{{ LOAD_BALANCER_IP }}:{{ LOAD_BALANCER_PORT }}' --upload-certs"
   args:
