@@ -1,14 +1,32 @@
+
 ---
 - name: Update apt cache
   apt:
     update_cache: yes
 
-    
-- name: Install containerd version v1.6.33
-  apt:
-    name: containerd=1.6.33-1
-    state: present
-    update_cache: yes
+- name: Download containerd package
+  get_url:
+    url: https://github.com/containerd/containerd/releases/download/v1.6.33/containerd-1.6.33-linux-amd64.tar.gz
+    dest: /tmp/containerd-1.6.33-linux-amd64.tar.gz
+
+- name: Create directory for extraction
+  file:
+    path: /tmp/containerd-1.6.33
+    state: directory
+
+- name: Extract containerd package
+  unarchive:
+    src: /tmp/containerd-1.6.33-linux-amd64.tar.gz
+    dest: /tmp/containerd-1.6.33
+    remote_src: yes
+
+- name: List extracted files
+  command: ls -l /tmp/containerd-1.6.33
+  register: extracted_files
+
+- debug:
+    var: extracted_files.stdout_lines
+
 
 - name: Create containerd modules configuration
   copy:
@@ -51,13 +69,11 @@
   service:
     name: containerd
 
-handlers:
-  - name: Reload modules
-    command: sudo modprobe {{ item }}
-    with_items:
-      - overlay
-      - br_netfilter
+- name: Reload modules
+  command: sudo modprobe {{ item }}
+  with_items:
+    - overlay
+    - br_netfilter
 
-  - name: Apply sysctl params
-    command: sysctl --system
-
+- name: Apply sysctl params
+  command: sysctl --system
