@@ -4,6 +4,11 @@
     path: /etc/kubernetes/admin.conf
   register: k8s_initialized
 
+- name: Generate kubeadm configuration file
+  template:
+    src: roles/init-master/templates/config.yaml.j2
+    dest: /etc/kubernetes/kubeadm-config.yaml
+    
 - name: Initialize the Kubernetes control plane
   shell: "kubeadm init --config /etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=NumCPU,Mem"
   args:
