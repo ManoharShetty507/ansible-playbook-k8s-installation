@@ -140,3 +140,9 @@
     owner: ansible-user
     group: ansible-user
     mode: "0644"
+- name: "Installing iproute-tc"
+  package:
+    name: iproute-tc
+    state: present
+- name: "Enabling IPtables Bridge Firewall Rule"
+  command: "echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables"
