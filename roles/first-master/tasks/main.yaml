@@ -6,7 +6,7 @@
 
 - name: Generate kubeadm configuration file
   template:
-    src: roles/init-master/templates/config.yaml.j2
+    src: roles/first-master/templates/config.yaml.j2
     dest: /etc/kubernetes/kubeadm-config.yaml
     
 - name: Initialize the Kubernetes control plane
