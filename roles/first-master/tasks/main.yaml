@@ -8,9 +8,30 @@
   command: ctr --namespace k8s.io image pull registry.k8s.io/pause:3.9
   become: true
 
+- name: Ensure /etc/kubernetes directory exists
+  file:
+    path: /etc/kubernetes
+    state: directory
+    mode: '0755'
+
+- name: Copy kubeadm configuration
+  template:
+    src: roles/first-master/templates/config.yaml.j2
+    dest: /etc/kubernetes/kubeadm-config.yaml
+    mode: '0644'
+
+- name: Check if kubeadm config file exists
+  stat:
+    path: /etc/kubernetes/kubeadm-config.yaml
+  register: kubeadm_config
+
+- name: Debug kubeadm config existence
+  debug:
+    msg: "Kubeadm config file exists: {{ kubeadm_config.stat.exists }}"
+
 - name: Initialize the Kubernetes master
   command: kubeadm init --config /etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=NumCPU,Mem
-  become: true
+  when: kubeadm_config.stat.exists
   register: kubeadm_init
   failed_when: kubeadm_init.rc != 0
   ignore_errors: yes
