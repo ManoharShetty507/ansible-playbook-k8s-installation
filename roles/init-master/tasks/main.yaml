@@ -76,11 +76,6 @@
     state: restarted
     enabled: yes
 
-- name: Check kubelet status
-  shell: systemctl status kubelet
-  register: kubelet_status
-  failed_when: "'running' not in kubelet_status.stdout"
-  ignore_errors: yes
 
 - name: Print kubelet status for debugging
   debug:
