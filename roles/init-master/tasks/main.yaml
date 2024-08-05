@@ -76,12 +76,6 @@
     state: restarted
     enabled: yes
 
-
-- name: Print kubelet status for debugging
-  debug:
-    var: kubelet_status
-  when: kubelet_status.failed
-
 - name: Pull kubeadm config images if not already pulled
   command: "kubeadm config images pull"
   when: kubeadm_images.stdout.find('image1') == -1
