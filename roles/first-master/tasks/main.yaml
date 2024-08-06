@@ -15,12 +15,27 @@
     mode: '0755'
 
 - name: Ensure required cgroups are enabled
-  shell: |
-    if ! grep -qw 'cgroup_enable=cpuset' /proc/cmdline; then
-      echo 'cgroup_enable=cpuset, memory' >> /boot/cmdline.txt
-      reboot
-    fi
+  hosts: master
   become: true
+  tasks:
+    - name: Check if cgroup_enable=cpuset is present in /proc/cmdline
+      command: grep -qw 'cgroup_enable=cpuset' /proc/cmdline
+      register: cgroup_check
+      ignore_errors: true
+
+- name: Enable required cgroups in /boot/cmdline.txt
+  lineinfile:
+    path: /boot/cmdline.txt
+    line: 'cgroup_enable=cpuset, memory'
+    state: present
+  when: cgroup_check.rc != 0
+  notify: reboot_system
+
+  handlers:
+    - name: reboot_system
+      reboot:
+        reboot_timeout: 600
+
   
 - name: Copy kubeadm configuration
   template:
