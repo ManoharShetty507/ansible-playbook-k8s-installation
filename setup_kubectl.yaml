@@ -5,5 +5,5 @@
   tasks:
     - name: Setup kubectl on bastion
       import_role:
-        name: package
+        name: kubectl-local
       when: ansible_host == "3.111.245.145"
