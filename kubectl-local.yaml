@@ -5,4 +5,4 @@
   tasks:
     - name: Setup kubectl on bastion
       import_role:
-        name: package
+        name: kubectl-local
