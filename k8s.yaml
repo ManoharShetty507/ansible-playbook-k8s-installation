@@ -5,5 +5,5 @@
 - import_playbook: setup_kubectl.yaml hostlist=local
 - import_playbook: configure_cni.yaml hostlist=master
 - import_playbook: copy-admin-conf.yaml    hostlist=master
-- import_playbook: setup_kubectl.yaml hostlist=local
+- import_playbook: kubectl-local.yaml hostlist=local
   #- import_playbook: join-node.yml hostlist=worker
