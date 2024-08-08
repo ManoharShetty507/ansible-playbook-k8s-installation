@@ -3,8 +3,7 @@
   hosts: k8s_node
   become: yes
   tasks:
-    - name: configure metallb
+    - name: Configure MetalLB
       import_role:
-        roles:
-        - metallb
+        name: metallb
 
