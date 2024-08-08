@@ -10,6 +10,3 @@
     - name: Import Helm role
       import_role:
         name: helm
-    - name: Setup kubectl on bastion
-      import_role:
-        name: kubectl-local
