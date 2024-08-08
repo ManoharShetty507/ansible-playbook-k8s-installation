@@ -1,6 +1,8 @@
 ---
 - name: kubeadm join master
-  hosts: master1:master2
+  hosts:
+    - master1
+    - master2
   tasks:
     - name: Copy join command to master nodes
       copy:
