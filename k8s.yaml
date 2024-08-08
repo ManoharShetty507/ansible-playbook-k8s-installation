@@ -6,5 +6,4 @@
 - import_playbook: kubectl-local.yaml    hostlist=local
 - import_playbook: configure_cni.yaml hostlist=master0
 - import_playbook: metallb.yaml  hostlist=master0
-- import_playbook: generate-token.yaml hostlist=master0
 - import_playbook: join-master-nodes.yaml hostlist=master1:master2
