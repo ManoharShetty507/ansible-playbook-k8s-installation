@@ -2,7 +2,6 @@
 - import_playbook: k8s-setup.yaml  hostlist=master
 - import_playbook: init-master.yml  hostlist=master
 - import_playbook: first-master.yaml  hostlist=master
-- import_playbook: setup_kubectl.yaml hostlist=local
 - import_playbook: configure_cni.yaml hostlist=master
 - import_playbook: copy-admin-conf.yaml    hostlist=master
 - import_playbook: kubectl-local.yaml hostlist=local
