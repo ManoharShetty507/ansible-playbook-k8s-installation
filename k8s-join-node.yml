@@ -11,3 +11,4 @@
         command: bash /tmp/kubeadm-join-command.sh
 
 
+
