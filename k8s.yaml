@@ -6,3 +6,4 @@
 - import_playbook: kubectl-local.yaml    hostlist=local
   #- import_playbook: join-node.yml hostlist=worker
 - import_playbook: configure_cni.yaml hostlist=master
+- import_playbook: metallb.yaml  hostlist=master
