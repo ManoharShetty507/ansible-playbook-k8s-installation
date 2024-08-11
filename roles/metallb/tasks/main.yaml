@@ -47,7 +47,11 @@
 - name: Apply L2Advertisement
   command: kubectl apply -f /tmp/l2advertisement.yaml
   register: apply_l2advertisement
+  retries: 5
+  delay: 10
+  until: apply_l2advertisement.rc == 0
   failed_when: apply_l2advertisement.rc != 0
+
 
 - name: Restart kube-proxy
   include_role:
