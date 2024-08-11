@@ -1,10 +1,10 @@
 ---
-- import_playbook: k8s-setup.yaml  hostlist=control plane
-- import_playbook: time-sync.yaml  hostlist=control plane
-- import_playbook: init-master.yml  hostlist=control plane
-- import_playbook: first-master.yaml  hostlist=control plane
-- import_playbook: copy-admin-conf.yaml    hostlist=control plane
+- import_playbook: k8s-setup.yaml  hostlist=controlplane
+- import_playbook: time-sync.yaml  hostlist=controlplane
+- import_playbook: init-master.yml  hostlist=controlplane
+- import_playbook: first-master.yaml  hostlist=controlplane
+- import_playbook: copy-admin-conf.yaml    hostlist=controlplane
 - import_playbook: kubectl-local.yaml    hostlist=local
-- import_playbook: configure_cni.yaml hostlist=control plane
-- import_playbook: metallb.yaml  hostlist=control plane
+- import_playbook: configure_cni.yaml hostlist=controlplane
+- import_playbook: metallb.yaml  hostlist=controlplane
 - import_playbook: join-master-nodes.yaml hostlist=master1:master2
