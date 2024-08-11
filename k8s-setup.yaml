@@ -1,6 +1,6 @@
 ---
 - name: Prepare nodes for running kubernetes
-  hosts: k8s_node
+  hosts: controlplane
   become: yes
   tasks:
     - name: Import Kubernetes role
