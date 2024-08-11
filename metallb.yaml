@@ -1,6 +1,6 @@
 ---
 - name: Join Kubernetes Node to Cluster
-  hosts: k8s_node
+  hosts: controlplane
   become: yes
   tasks:
     - name: Configure MetalLB
