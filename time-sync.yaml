@@ -1,6 +1,6 @@
 ---
 - name: Synchronize time on all servers
-  hosts: master
+  hosts: controlplane
   become: yes
 
   tasks:
