@@ -34,7 +34,10 @@
 - name: Apply IPAddressPool
   command: kubectl apply -f /tmp/ipaddresspool.yaml
   register: apply_ipaddresspool
-  failed_when: apply_ipaddresspool.rc != 0
+  retries: 5
+  delay: 10
+  until: apply_ipaddresspool.rc == 0
+
 
 - name: Create L2Advertisement YAML file from template
   template:
