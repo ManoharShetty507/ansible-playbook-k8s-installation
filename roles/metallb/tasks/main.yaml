@@ -8,9 +8,11 @@
   command: kubectl get configmap kube-proxy -n kube-system -o yaml
   register: kube_proxy_config
 
-- name: Modify strictARP value to true
+- name: Remove resourceVersion and modify strictARP value to true
   shell: |
-    echo "{{ kube_proxy_config.stdout }}" | sed -e "s/strictARP: false/strictARP: true/"
+    echo "{{ kube_proxy_config.stdout }}" | \
+    sed -e "/resourceVersion: .*/d" | \
+    sed -e "s/strictARP: false/strictARP: true/"
   register: modified_kube_proxy_config
 
 - name: Apply the modified kube-proxy ConfigMap
