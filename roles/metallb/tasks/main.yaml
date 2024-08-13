@@ -1,23 +1,33 @@
-- name: Save modified ConfigMap to temporary file
-  copy:
-    content: "{{ modified_configmap.stdout }}"
-    dest: /tmp/kube-proxy-modified.yaml
+tasks:
+  - name: Apply kube-proxy ConfigMap changes
+    shell: |
+      kubectl get configmap kube-proxy -n kube-system -o yaml | \
+      sed -e "s/strictARP: false/strictARP: true/" | \
+      kubectl apply -f - -n kube-system
+    environment:
+      KUBECONFIG: "{{ kubeconfig_path }}"  # Ensure this is correctly set
 
-- name: View and validate changes (simulate `kubectl diff`)
-  command: kubectl diff -f /tmp/kube-proxy-modified.yaml -n kube-system
-  register: diff_output
-  ignore_errors: yes
+  - name: Apply MetalLB manifests
+    command: kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.8/config/manifests/metallb-native.yaml
+    environment:
+      KUBECONFIG: "{{ kubeconfig_path }}"  # Ensure this is correctly set
 
-- name: Display diff output
-  debug:
-    msg: "{{ diff_output.stdout }}"
+  - name: Create IPAddressPool YAML from template
+    template:
+      src: ipaddresspool.yaml.j2
+      dest: /tmp/ipaddresspool.yaml
 
-- name: Apply changes if differences exist
-  command: kubectl apply -f /tmp/kube-proxy-modified.yaml -n kube-system
-  when: diff_output.rc == 1
-  ignore_errors: yes
+  - name: Apply IPAddressPool configuration
+    command: kubectl apply -f /tmp/ipaddresspool.yaml
+    environment:
+      KUBECONFIG: "{{ kubeconfig_path }}"  # Ensure this is correctly set
 
-- name: Display message if no changes are needed or if an error occurred
-  debug:
-    msg: "No changes needed or an error occurred."
-  when: diff_output.rc != 1
+  - name: Create L2Advertisement YAML from template
+    template:
+      src: l2advertisement.yaml.j2
+      dest: /tmp/l2advertisement.yaml
+
+  - name: Apply L2Advertisement configuration
+    command: kubectl apply -f /tmp/l2advertisement.yaml
+    environment:
+      KUBECONFIG: "{{ kubeconfig_path }}"  # Ensure this is correctly set
