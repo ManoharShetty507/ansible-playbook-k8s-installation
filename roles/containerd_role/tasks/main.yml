@@ -2,9 +2,9 @@
   shell: |
     modprobe overlay
     modprobe br_netfilter
-  args:
-    warn: false
-
+  environment:
+    ANSIBLE_COMMAND_WARNINGS: "False"
+    
 - name: Ensure kernel modules are loaded at boot
   copy:
     content: |
