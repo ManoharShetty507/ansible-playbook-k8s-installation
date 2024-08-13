@@ -1,14 +1,22 @@
----
-- name: kubeadm join master
-  hosts:
-    - master1
-    - master2
+- name: Generate join command for new masters
+  hosts: master
+  become: yes
   tasks:
-    - name: Join cluster as master node
-      become: true
-      shell: bash /tmp/kubeadm-join-command.sh
+    - name: Generate join command
+      command: kubeadm token create --print-join-command
+      register: join_command
+      environment:
+        KUBECONFIG: /home/ansible-user/.kube/config
+      changed_when: false
 
-    - name: Join cluster as master node
-      become: yes
-      command: bash /tmp/kubeadm-join-command.sh
-
+    - name: Set join command as a fact
+      set_fact:
+        kubeadm_join_command: "{{ join_command.stdout }}"
+- name: Add new master nodes to the cluster
+  hosts: master1,master2
+  become: yes
+  tasks:
+    - name: Join master node to the cluster
+      command: "{{ hostvars['master']['kubeadm_join_command'] }}"
+      environment:
+        KUBECONFIG: /home/ansible-user/.kube/config
