@@ -1,14 +1,6 @@
-- name: Get current kube-proxy ConfigMap
-  command: kubectl get configmap kube-proxy -n kube-system -o yaml
-  register: kube_proxy_configmap
-
-- name: Prepare modified ConfigMap content
-  set_fact:
-    modified_configmap: "{{ kube_proxy_configmap.stdout | replace('strictARP: false', 'strictARP: true') }}"
-
 - name: Save modified ConfigMap to temporary file
   copy:
-    content: "{{ modified_configmap }}"
+    content: "{{ modified_configmap.stdout }}"
     dest: /tmp/kube-proxy-modified.yaml
 
 - name: View and validate changes (simulate `kubectl diff`)
@@ -25,7 +17,7 @@
   when: diff_output.rc == 1
   ignore_errors: yes
 
-- name: Display message if no changes are needed
+- name: Display message if no changes are needed or if an error occurred
   debug:
     msg: "No changes needed or an error occurred."
   when: diff_output.rc != 1
