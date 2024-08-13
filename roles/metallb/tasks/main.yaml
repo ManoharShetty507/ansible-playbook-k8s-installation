@@ -1,33 +1,40 @@
-tasks:
-  - name: Apply kube-proxy ConfigMap changes
-    shell: |
-      kubectl get configmap kube-proxy -n kube-system -o yaml | \
-      sed -e "s/strictARP: false/strictARP: true/" | \
-      kubectl apply -f - -n kube-system
-    environment:
-      KUBECONFIG: "{{ kubeconfig_path }}"  # Ensure this is correctly set
+ - name: Apply kube-proxy ConfigMap changes
+  shell: |
+    kubectl --kubeconfig /home/ansible-user/.kube/config get configmap kube-proxy -n kube-system -o yaml | \
+    sed -e "s/strictARP: false/strictARP: true/" | \
+    kubectl --kubeconfig /home/ansible-user/.kube/config apply -f - -n kube-system
+  environment:
+    KUBECONFIG: /home/ansible-user/.kube/config
+  register: result
+  failed_when: result.rc != 0
+  changed_when: "'configured' in result.stdout"
 
-  - name: Apply MetalLB manifests
-    command: kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.8/config/manifests/metallb-native.yaml
-    environment:
-      KUBECONFIG: "{{ kubeconfig_path }}"  # Ensure this is correctly set
+- name: Display result of kube-proxy ConfigMap changes
+  debug:
+    msg: "{{ result.stdout }}"
 
-  - name: Create IPAddressPool YAML from template
-    template:
-      src: ipaddresspool.yaml.j2
-      dest: /tmp/ipaddresspool.yaml
+- name: Apply MetalLB manifests
+  command: kubectl --kubeconfig /home/ansible-user/.kube/config apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.8/config/manifests/metallb-native.yaml
+  environment:
+    KUBECONFIG: /home/ansible-user/.kube/config
 
-  - name: Apply IPAddressPool configuration
-    command: kubectl apply -f /tmp/ipaddresspool.yaml
-    environment:
-      KUBECONFIG: "{{ kubeconfig_path }}"  # Ensure this is correctly set
+- name: Create IPAddressPool YAML from template
+  template:
+    src: ipaddresspool.yaml.j2
+    dest: /tmp/ipaddresspool.yaml
 
-  - name: Create L2Advertisement YAML from template
-    template:
-      src: l2advertisement.yaml.j2
-      dest: /tmp/l2advertisement.yaml
+- name: Apply IPAddressPool configuration
+  command: kubectl --kubeconfig /home/ansible-user/.kube/config apply -f /tmp/ipaddresspool.yaml
+  environment:
+    KUBECONFIG: /home/ansible-user/.kube/config
 
-  - name: Apply L2Advertisement configuration
-    command: kubectl apply -f /tmp/l2advertisement.yaml
-    environment:
-      KUBECONFIG: "{{ kubeconfig_path }}"  # Ensure this is correctly set
+- name: Create L2Advertisement YAML from template
+  template:
+    src: l2advertisement.yaml.j2
+    dest: /tmp/l2advertisement.yaml
+
+- name: Apply L2Advertisement configuration
+  command: kubectl --kubeconfig /home/ansible-user/.kube/config apply -f /tmp/l2advertisement.yaml
+  environment:
+    KUBECONFIG: /home/ansible-user/.kube/config
+
