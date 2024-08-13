@@ -1,6 +1,6 @@
 ---
 - name: setup_kubectl
-  hosts: controlplane
+  hosts: master
   become: yes
   tasks:
     - name: initialize the master0
