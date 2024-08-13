@@ -4,7 +4,7 @@
   register: kubectl_check
   failed_when: kubectl_check.rc != 0
 
-- name: Get kube-proxy ConfigMap and set strictARP to true
+- name: Get kube-proxy ConfigMap
   command: kubectl get configmap kube-proxy -n kube-system -o yaml
   register: kube_proxy_config
 
@@ -38,7 +38,6 @@
   delay: 10
   until: apply_ipaddresspool.rc == 0
 
-
 - name: Create L2Advertisement YAML file from template
   template:
     src: l2advertisement.yaml.j2
@@ -52,8 +51,7 @@
   until: apply_l2advertisement.rc == 0
   failed_when: apply_l2advertisement.rc != 0
 
-
-- name: Restart kube-proxy
+- name: Restart kube-proxy if kube-proxy ConfigMap was modified
   include_role:
     name: metallb
     tasks_from: handlers/restart_kube_proxy.yaml
