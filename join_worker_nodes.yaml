@@ -1,13 +1,26 @@
 ---
-- name: Join Kubernetes Worker Node
+- name: Generate and distribute kubeadm join command
   hosts: node
   become: yes
+  gather_facts: no
+  tasks:
+    - name: Generate kubeadm join command
+      shell: kubeadm token create --print-join-command
+      register: join_command_output
+
+    - name: Set join command as a fact
+      set_fact:
+        join_command: "{{ join_command_output.stdout }}"
+
+- name: Join worker nodes to the Kubernetes cluster
+  hosts: node
+  become: yes
+  gather_facts: no
   tasks:
     - name: Join the worker node to the Kubernetes cluster
       command: "{{ join_command }}"
       environment:
         KUBECONFIG: /etc/kubernetes/kubelet.conf
-      when: join_command is defined
 
     - name: Restart kubelet after joining the cluster
       systemd:
