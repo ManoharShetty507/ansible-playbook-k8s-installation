@@ -1,4 +1,4 @@
- - name: Apply kube-proxy ConfigMap changes
+- name: Apply kube-proxy ConfigMap changes
   shell: |
     kubectl --kubeconfig /home/ansible-user/.kube/config get configmap kube-proxy -n kube-system -o yaml | \
     sed -e "s/strictARP: false/strictARP: true/" | \
@@ -37,4 +37,3 @@
   command: kubectl --kubeconfig /home/ansible-user/.kube/config apply -f /tmp/l2advertisement.yaml
   environment:
     KUBECONFIG: /home/ansible-user/.kube/config
-
