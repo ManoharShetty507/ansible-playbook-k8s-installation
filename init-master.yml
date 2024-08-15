@@ -1,6 +1,6 @@
 ---
 - name: setup_kubectl
-  hosts: controlplane
+  hosts: k8s_node
   become: yes
   tasks:
     - name: initialize the master0
