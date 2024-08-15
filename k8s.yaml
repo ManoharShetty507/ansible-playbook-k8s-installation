@@ -6,6 +6,6 @@
 - import_playbook: copy-admin-conf.yaml    hostlist=controlplane
 - import_playbook: kubectl-local.yaml    hostlist=local
 - import_playbook: configure_cni.yaml hostlist=controlplane
-- import_playbook: join-master-nodes.yaml hostlist=master1:master2
+- import_playbook: join-master-nodes.yaml hostlist=master2:master3
 - import_playbook: join_worker_nodes.yaml hostlist=master1
 - import_playbook: metallb.yaml  hostlist=controlplane
