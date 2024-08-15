@@ -1,0 +1,74 @@
+---
+- name: Update OS packages
+  apt:
+    update_cache: yes
+
+- name: Install NFS server package
+  apt:
+    name: nfs-kernel-server
+    state: present
+
+- name: Create NFS directory
+  file:
+    path: "{{ nfs_export_dir }}"
+    state: directory
+    owner: nobody
+    group: nogroup
+    mode: '2775'
+
+- name: Configure NFS exports
+  lineinfile:
+    path: "{{ nfs_exports_path }}"
+    line: "{{ nfs_export_dir }}\t{{ nfs_export_network }}(rw,sync,no_subtree_check,no_root_squash)"
+    create: yes
+
+- name: Export NFS shares
+  command: exportfs -av
+
+- name: Ensure UFW is installed and enabled
+  apt:
+    name: ufw
+    state: present
+  notify:
+    - Enable UFW
+
+- name: Allow portmapper access through UFW
+  ufw:
+    rule: allow
+    port: "{{ nfs_portmapper_port }}"
+
+- name: Allow NFS access through UFW
+  ufw:
+    rule: allow
+    port: "{{ nfs_port }}"
+
+- name: Set mountd port and allow access
+  lineinfile:
+    path: /etc/services
+    line: "mountd\t\t{{ mountd_port }}/tcp"
+    create: yes
+
+- name: Set mountd UDP port and allow access
+  lineinfile:
+    path: /etc/services
+    line: "mountd\t\t{{ mountd_port }}/udp"
+    create: yes
+
+- name: Allow mountd port through UFW
+  ufw:
+    rule: allow
+    port: "{{ mountd_port }}"
+
+- name: Restart NFS server
+  systemd:
+    name: nfs-kernel-server
+    state: restarted
+    enabled: yes
+
+- name: Show export details
+  command: /sbin/showmount -e localhost
+  register: showmount_output
+
+- name: Display export details
+  debug:
+    msg: "{{ showmount_output.stdout }}"
