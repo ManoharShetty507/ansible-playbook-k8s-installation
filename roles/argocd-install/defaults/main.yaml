@@ -1,6 +1,5 @@
 ---
-argo_helm_repo: https://argoproj.github.io/argo-helm
-argo_chart_name: argo/argo-cd
-argo_release_name: argocd
-argo_namespace: argo-cd
-argo_service_type: LoadBalancer
+# Default values for Argo CD installation
+argo_namespace: argocd
+argo_manifest_url: https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
