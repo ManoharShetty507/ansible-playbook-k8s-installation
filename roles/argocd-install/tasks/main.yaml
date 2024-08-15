@@ -11,6 +11,3 @@
   environment:
     KUBECONFIG: /home/ansible-user/.kube/config
   when: inventory_hostname == 'master1'
-
-  debug:
-    msg: "{{ helm_upgrade.stdout }}"
