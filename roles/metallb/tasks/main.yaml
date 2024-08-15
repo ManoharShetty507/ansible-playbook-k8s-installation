@@ -1,3 +1,4 @@
+---
 - name: Check if kubeconfig file exists
   stat:
     path: /home/ansible-user/.kube/config
@@ -36,6 +37,16 @@
     msg: "{{ metallb_apply_result.stdout }}"
   when: metallb_apply_result is defined and metallb_apply_result.stdout is defined
 
+- name: Wait for MetalLB pods to be ready
+  shell: |
+    kubectl --kubeconfig /home/ansible-user/.kube/config get pods -n metallb-system -o jsonpath="{.items[*].status.containerStatuses[*].ready}" | grep -v "false"
+  register: metallb_pods_status
+  retries: 10
+  delay: 15
+  until: metallb_pods_status.rc == 0
+  environment:
+    KUBECONFIG: /home/ansible-user/.kube/config
+
 - name: Create IPAddressPool YAML from template
   template:
     src: ipaddresspool.yaml.j2
@@ -45,6 +56,10 @@
   command: kubectl --kubeconfig /home/ansible-user/.kube/config apply -f /tmp/ipaddresspool.yaml
   environment:
     KUBECONFIG: /home/ansible-user/.kube/config
+  register: ipaddresspool_apply_result
+  retries: 5
+  delay: 10
+  until: ipaddresspool_apply_result.rc == 0
 
 - name: Create L2Advertisement YAML from template
   template:
