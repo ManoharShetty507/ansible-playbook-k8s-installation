@@ -10,3 +10,4 @@
 - import_playbook: label_nodes.yaml hostlist=controlplane
 - import_playbook: join_worker_nodes.yaml hostlist=node
 - import_playbook: metallb.yaml  hostlist=controlplane
+- import_playbook: k8s-cert-manager-master  hostlist=controlplane
