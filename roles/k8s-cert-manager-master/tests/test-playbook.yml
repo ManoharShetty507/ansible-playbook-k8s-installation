@@ -1,7 +1,0 @@
----
-- hosts: all
-  tasks:
-  - name: Test Helm install
-    include_role:
-      name: k8s-cert-manager
-

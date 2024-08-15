@@ -1,9 +1,0 @@
-# Do nothing for now. I'm not sure that there's an easy way
-# to spin up a Kubernetes service/API to interact with for
-# testing purposes
-#- hosts: localhost
-#  roles:
-#    - name: k8s-cert-manager
-#      letsencrypt_email: test@example.com
-      
-

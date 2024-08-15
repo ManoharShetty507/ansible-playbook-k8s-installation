@@ -1,3 +1,0 @@
-- src: git+https://gitlab.triumf.ca/ansible/roles/k8s-helm.git
-  version: master
-  name: k8s-helm
