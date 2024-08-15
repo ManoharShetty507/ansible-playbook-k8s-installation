@@ -1,23 +1,40 @@
+- name: Check if kubeconfig file exists
+  stat:
+    path: /home/ansible-user/.kube/config
+  register: kubeconfig_file
+
+- name: Fail if kubeconfig file does not exist
+  fail:
+    msg: "The kubeconfig file does not exist at /home/ansible-user/.kube/config."
+  when: not kubeconfig_file.stat.exists
+
 - name: Apply kube-proxy ConfigMap changes
   shell: |
     kubectl --kubeconfig /home/ansible-user/.kube/config get configmap kube-proxy -n kube-system -o yaml | \
     sed -e "s/strictARP: false/strictARP: true/" | \
     kubectl --kubeconfig /home/ansible-user/.kube/config apply -f - -n kube-system
-  when: kubeconfig_file.stat.exists
   environment:
     KUBECONFIG: /home/ansible-user/.kube/config
-  register: result
-  failed_when: result.rc != 0
-  changed_when: "'configured' in result.stdout"
+  register: kube_proxy_apply_result
+  failed_when: kube_proxy_apply_result.rc != 0
+  changed_when: "'configured' in kube_proxy_apply_result.stdout"
 
 - name: Display result of kube-proxy ConfigMap changes
   debug:
-    msg: "{{ result.stdout }}"
+    msg: "{{ kube_proxy_apply_result.stdout }}"
+  when: kube_proxy_apply_result is defined and kube_proxy_apply_result.stdout is defined
 
 - name: Apply MetalLB manifests
   command: kubectl --kubeconfig /home/ansible-user/.kube/config apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.8/config/manifests/metallb-native.yaml
   environment:
     KUBECONFIG: /home/ansible-user/.kube/config
+  register: metallb_apply_result
+  failed_when: metallb_apply_result.rc != 0
+
+- name: Display result of MetalLB manifest application
+  debug:
+    msg: "{{ metallb_apply_result.stdout }}"
+  when: metallb_apply_result is defined and metallb_apply_result.stdout is defined
 
 - name: Create IPAddressPool YAML from template
   template:
