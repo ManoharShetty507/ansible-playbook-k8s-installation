@@ -1,6 +1,6 @@
 ---
 - name: setup_kubectl
-  hosts: master
+  hosts: master1
   become: yes
   tasks:
     - name: initialize the master0
