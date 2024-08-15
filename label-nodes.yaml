@@ -16,10 +16,6 @@
       loop: "{{ nodes }}"
       command: kubectl label node {{ item }} node-role.kubernetes.io/control-plane=true --overwrite
 
-    - name: Verify the label changes
-      command: kubectl get nodes --show-labels
-      register: verify_output
-
     - name: Display verification output
       debug:
         var: verify_output.stdout_lines
