@@ -1,26 +1,42 @@
----
 - name: Add the Jetstack Helm repository
-  command:
-    cmd: helm repo add jetstack https://charts.jetstack.io
+  command: helm repo add jetstack https://charts.jetstack.io
+  when: inventory_hostname == 'master1'
 
 - name: Update Helm repositories
-  command:
-    cmd: helm repo update
-    
-- name: Apply cert-manager CRDs
-  command: kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.crds.yaml
+  command: helm repo update
+  when: inventory_hostname == 'master1'
+
+- name: Apply cert-manager CRDs on master1
+  shell: kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.crds.yaml
   environment:
     KUBECONFIG: /home/ansible-user/.kube/config
+  register: apply_crds_result
+  failed_when: apply_crds_result.rc != 0
+  when: inventory_hostname == 'master1'
 
-- name: Create cert-manager namespace
-  command:
-    cmd: kubectl create namespace cert-manager
-  ignore_errors: yes  # Ignore if the namespace already exists
+- name: Check if cert-manager namespace exists
+  shell: kubectl get namespace cert-manager
+  register: namespace_check
+  failed_when: false
+  changed_when: false
+  when: inventory_hostname == 'master1'
 
-- name: Remove existing cert-manager Helm release
-  command:
-    cmd: helm uninstall cert-manager --namespace cert-manager
-  ignore_errors: yes  # Ignore if the release does not exist
+- name: Create cert-manager namespace if not exists
+  shell: kubectl create namespace cert-manager
+  when: inventory_hostname == 'master1' and namespace_check.rc != 0
+
+- name: Check if cert-manager Helm release exists
+  shell: helm list -n cert-manager | grep -w cert-manager
+  register: helm_release_check
+  failed_when: false
+  changed_when: false
+  when: inventory_hostname == 'master1'
+
+- name: Remove existing cert-manager Helm release if it exists
+  shell: helm uninstall cert-manager --namespace cert-manager
+  when: inventory_hostname == 'master1' and helm_release_check.rc == 0
+  register: helm_uninstall_result
+  failed_when: helm_uninstall_result.rc != 0
 
 - name: Create values.yaml file for Helm installation
   ansible.builtin.copy:
@@ -28,16 +44,21 @@
     content: |
       ingressShim:
         defaultIssuerName: "letsencrypt-prod"
+  when: inventory_hostname == 'master1'
 
-- name: Install cert-manager using Helm
-  command:
-    cmd: helm install cert-manager jetstack/cert-manager --values /tmp/values.yaml --namespace cert-manager
+- name: Check if cert-manager Helm release exists
+  shell: helm list --namespace cert-manager --filter cert-manager
+  register: helm_release_check
+  failed_when: false
+  changed_when: false
+  when: inventory_hostname == 'master1'
+
+- name: Install cert-manager using Helm if not already installed
+  shell: helm install cert-manager jetstack/cert-manager --values /tmp/values.yaml --namespace cert-manager
+  when: inventory_hostname == 'master1' and helm_release_check.stdout == ''
 
 - name: Create ClusterIssuer configuration file
   ansible.builtin.template:
     src: cluster-issuer.yaml.j2
     dest: /tmp/cluster-issuer.yaml
-
-- name: Apply ClusterIssuer configuration to Kubernetes
-  command:
-    cmd: kubectl apply -f /tmp/cluster-issuer.yaml
+  when: inventory_hostname == 'master1'
