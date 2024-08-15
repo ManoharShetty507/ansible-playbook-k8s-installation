@@ -1,6 +1,6 @@
 ---
 - name: Synchronize time on all servers
-  hosts: controlplane
+  hosts: k8s_node
   become: yes
 
   tasks:
