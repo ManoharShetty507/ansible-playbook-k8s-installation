@@ -1,5 +1,5 @@
 - name: Generate join command for new masters
-  hosts: master
+  hosts: master1
   become: yes
   tasks:
     - name: Generate join command
