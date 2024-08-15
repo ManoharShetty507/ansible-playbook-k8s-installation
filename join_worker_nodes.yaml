@@ -1,6 +1,6 @@
 ---
 - name: Generate kubeadm join command on the control plane
-  hosts: controlplane
+  hosts: master1
   become: yes
   gather_facts: no
   tasks:
