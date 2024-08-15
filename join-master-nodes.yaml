@@ -13,7 +13,7 @@
       set_fact:
         kubeadm_join_command: "{{ join_command.stdout }}"
 - name: Add new master nodes to the cluster
-  hosts: master1,master2
+  hosts: master2,master3
   become: yes
   tasks:
     - name: Join master node to the cluster
