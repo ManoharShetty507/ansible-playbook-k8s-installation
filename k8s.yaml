@@ -11,3 +11,4 @@
 - import_playbook: join_worker_nodes.yaml hostlist=node
 - import_playbook: metallb.yaml  hostlist=controlplane
 - import_playbook: k8s-cert-manager-master  hostlist=controlplane
+- import_playbook: argocd-install  hostlist=k8s_node
