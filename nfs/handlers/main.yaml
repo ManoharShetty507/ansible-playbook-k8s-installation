@@ -1,4 +1,0 @@
----
-- name: Enable UFW
-  ufw:
-    state: "{{ ufw_state }}"
