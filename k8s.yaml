@@ -8,4 +8,5 @@
 - import_playbook: configure_cni.yaml hostlist=k8s_node
 - import_playbook: join-master-nodes.yaml hostlist=master2:master3
 - import_playbook: join_worker_nodes.yaml hostlist=node
+- import_playbook: label_nodes.yaml hostlist=controlplane
 - import_playbook: metallb.yaml  hostlist=controlplane
