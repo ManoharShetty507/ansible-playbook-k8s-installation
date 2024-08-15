@@ -3,6 +3,7 @@
     kubectl --kubeconfig /home/ansible-user/.kube/config get configmap kube-proxy -n kube-system -o yaml | \
     sed -e "s/strictARP: false/strictARP: true/" | \
     kubectl --kubeconfig /home/ansible-user/.kube/config apply -f - -n kube-system
+  when: kubeconfig_file.stat.exists
   environment:
     KUBECONFIG: /home/ansible-user/.kube/config
   register: result
