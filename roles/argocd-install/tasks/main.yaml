@@ -1,13 +1,43 @@
+
 ---
-- name: Create Argo CD namespace
-  shell: kubectl create namespace {{ argo_namespace }}
-  ignore_errors: yes  # Ignore if the namespace already exists
-  environment:
-    KUBECONFIG: /home/ansible-user/.kube/config
+- name: Create namespace for Argo CD
+  shell: |
+    kubectl create namespace argocd || true
   when: inventory_hostname == 'master1'
 
-- name: Apply Argo CD installation manifest
-  shell: kubectl apply -n {{ argo_namespace }} -f {{ argo_manifest_url }}
-  environment:
-    KUBECONFIG: /home/ansible-user/.kube/config
+- name: Deploy Argo CD using kubectl apply
+  shell: |
+    kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+  when: inventory_hostname == 'master1'
+
+- name: Patch Argo CD server service to use LoadBalancer
+  shell: |
+    kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+  when: inventory_hostname == 'master1'
+
+- name: Get Argo CD initial admin secret
+  shell: |
+    kubectl get secret argocd-initial-admin-secret -n argocd -o yaml
+  register: admin_secret
+  when: inventory_hostname == 'master1'
+
+- name: Display Argo CD initial admin secret
+  debug:
+    msg: "{{ admin_secret.stdout }}"
+  when: inventory_hostname == 'master1'
+
+- name: Decode Argo CD initial admin password
+  shell: |
+    kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 --decode
+  register: admin_password
+  when: inventory_hostname == 'master1'
+
+- name: Display Argo CD initial admin password
+  debug:
+    msg: "Argo CD initial admin password is: {{ admin_password.stdout }}"
+  when: inventory_hostname == 'master1'
+
+- name: Decode a given base64 password
+  debug:
+    msg: "Decoded password: {{ '319fHyznWz18gL5H' | b64decode }}"
   when: inventory_hostname == 'master1'
