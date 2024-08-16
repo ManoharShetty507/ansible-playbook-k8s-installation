@@ -1,4 +1,5 @@
 ---
-- name: Enable UFW
-  ufw:
-    state: "{{ ufw_state }}"
+- name: Restart NFS server
+  systemd:
+    name: nfs-kernel-server
+    state: restarted

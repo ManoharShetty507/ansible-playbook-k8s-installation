@@ -1,8 +1,3 @@
----
-nfs_exports_path: /etc/exports
-nfs_export_dir: /data/nfs1
-nfs_export_network: 10.0.8.0/16
-nfs_portmapper_port: 111
-nfs_port: 2049
-mountd_port: 6666
-ufw_state: enabled
+nfs_export_dir: "/data/nfs1"
+nfs_network_range: "10.0.8.0/16"
+nfs_export_options: "rw,sync,no_subtree_check,no_root_squash"
