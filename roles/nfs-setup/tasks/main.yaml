@@ -15,11 +15,13 @@
 
 - name: Install NFS Subdir External Provisioner using Helm
   shell: |
+    export KUBECONFIG=/etc/kubernetes/admin.conf  # Load the kubeconfig file
     helm install nfs-subdir-external-provisioner \
     nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
     --set nfs.server={{ nfs_ip }} \
     --set nfs.path={{ nfs_path }} \
     --set storageClass.onDelete={{ storage_class_delete_behavior | lower }}
+    unset KUBECONFIG  # Unset the KUBECONFIG after the command runs
   args:
     chdir: /tmp
 
