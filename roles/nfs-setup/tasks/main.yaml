@@ -3,6 +3,11 @@
         path: /etc/kubernetes/admin.conf
       register: kubeconfig
 
+    - name: Fail if kubeconfig file does not exist
+      fail:
+        msg: "Kubeconfig file does not exist at /etc/kubernetes/admin.conf"
+      when: not kubeconfig.stat.exists
+
     - name: Install nfs-common package
       apt:
         name: nfs-common
