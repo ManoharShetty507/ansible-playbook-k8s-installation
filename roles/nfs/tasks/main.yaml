@@ -45,3 +45,18 @@
 
 - debug:
     msg: "{{ showmount_output.stdout }}"
+
+# Optional task: Add firewall rules if needed to allow NFS traffic
+- name: Allow NFS traffic in firewall
+  ufw:
+    rule: allow
+    proto: tcp
+    from_ip: "{{ kubernetes_node_ip }}"  # Replace with your K8s nodes' IP range
+    port: nfs
+
+# Example handler to restart NFS server when exports are modified
+- name: Restart NFS server
+  systemd:
+    name: nfs-kernel-server
+    state: restarted
+    enabled: yes
