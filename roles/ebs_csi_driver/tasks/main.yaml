@@ -1,8 +1,3 @@
-# Set KUBECONFIG to use the correct kubeconfig file
-- name: Set KUBECONFIG
-  set_fact:
-    kubeconfig_path: "/home/ansible-user/.kube/config"  # Adjust the path as necessary
-
 # Ensure that kubectl is installed
 - name: Ensure that kubectl is installed
   command: "which kubectl"
@@ -10,76 +5,43 @@
   changed_when: False
   failed_when: kubectl_check.rc != 0
 
-# Apply the EBS CSI Driver using kustomize from the GitHub repository
-- name: Apply the EBS CSI Driver using kustomize from the GitHub repository
-  command: "kubectl apply -k 'github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master'"
-  register: kubectl_apply_output
-  environment:
-    KUBECONFIG: "{{ kubeconfig_path }}"
-  ignore_errors: true  # Ignore errors for checking success
 
-# Check if EBS CSI driver was applied successfully
-- name: Check if EBS CSI driver was applied successfully
-  command: "kubectl get pods -n kube-system -l app=ebs-csi-controller"
-  register: ebs_driver_check
-  environment:
-    KUBECONFIG: "{{ kubeconfig_path }}"
-  until: ebs_driver_check.rc == 0
-  retries: 5
-  delay: 30
-
-# Debug EBS CSI driver installation result
-- name: Debug EBS CSI driver installation result
+# Check if the EBS CSI driver was applied successfully
+- name: Check EBS CSI Driver installation result
   debug:
-    msg: "{{ kubectl_apply_output.stdout }}"
+    msg: "{{ kubectl_apply_output.stdout | default('No output available') }}"
+  when: kubectl_apply_output is defined and kubectl_apply_output.rc == 0
 
-# Check if StorageClass already exists
+# Debug EBS CSI driver installation error
+- name: Debug EBS CSI driver installation error
+  debug:
+    msg: "{{ kubectl_apply_output.stderr | default('No error output available') }}"
+  when: kubectl_apply_output is defined and kubectl_apply_output.rc != 0
+
+# Check if StorageClass gp2 exists
 - name: Check if StorageClass gp2 exists
   command: "kubectl get storageclass gp2"
   register: storageclass_check
+  environment:
+    KUBECONFIG: /home/ansible-user/.kube/config
   failed_when: storageclass_check.rc not in [0, 1]
   changed_when: False
-  environment:
-    KUBECONFIG: "{{ kubeconfig_path }}"
 
-# Create StorageClass if it does not exist
-- name: Create StorageClass if it does not exist
+# Create and apply StorageClass if it does not exist
+- name: Create and apply StorageClass if it does not exist
   template:
-    src: "/home/ansible-user/ansible-playbook-k8s-installation/roles/ebs_csi_driver/templates/storageclass.yaml.j2"
+    src: /home/ansible-user/ansible-playbook-k8s-installation/roles/ebs_csi_driver/templates/storageclass.yaml.j2
     dest: /tmp/storageclass.yaml
   when: storageclass_check.rc == 1
+  environment:
+    KUBECONFIG: /home/ansible-user/.kube/config
 
-# Apply StorageClass if it does not exist
 - name: Apply StorageClass if it does not exist
   command: "kubectl apply -f /tmp/storageclass.yaml"
+  environment:
+    KUBECONFIG: /home/ansible-user/.kube/config
   when: storageclass_check.rc == 1
-  environment:
-    KUBECONFIG: "{{ kubeconfig_path }}"
 
-# Check if PersistentVolumeClaim already exists
+# Check if PersistentVolumeClaim ebs-pvc exists
 - name: Check if PersistentVolumeClaim ebs-pvc exists
-  command: "kubectl get pvc ebs-pvc"
-  register: pvc_check
-  failed_when: pvc_check.rc not in [0, 1]
-  changed_when: False
-  environment:
-    KUBECONFIG: "{{ kubeconfig_path }}"
-
-# Create PersistentVolumeClaim if it does not exist
-- name: Create PersistentVolumeClaim if it does not exist
-  template:
-    src: "/home/ansible-user/ansible-playbook-k8s-installation/roles/ebs_csi_driver/templates/persistentvolumeclaim.yaml.j2"
-    dest: /tmp/persistentvolumeclaim.yaml
-  when: pvc_check.rc == 1
-
-# Apply PersistentVolumeClaim if it does not exist
-- name: Apply PersistentVolumeClaim if it does not exist
-  command: "kubectl apply -f /tmp/persistentvolumeclaim.yaml"
-  when: pvc_check.rc == 1
-  environment:
-    KUBECONFIG: "{{ kubeconfig_path }}"
-
-# Remove the KUBECONFIG variable (optional)
-- name: Remove KUBECONFIG variable
-  set_fact:
-    kubeconfig_path: ""
+                                                                                                                                 1,34          Top
