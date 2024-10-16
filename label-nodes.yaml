@@ -16,6 +16,10 @@
       loop: "{{ nodes }}"
       command: kubectl label node {{ item }} node-role.kubernetes.io/control-plane=true --overwrite
 
+    - name: Label the same master node with empty control-plane label
+      loop: "{{ nodes }}"
+      when: item == ansible_hostname  # Replace with the condition to identify your master node
+      command: kubectl label nodes {{ item }} node-role.kubernetes.io/control-plane="" --overwrite
     - name: Display verification output
       debug:
         var: verify_output.stdout_lines
