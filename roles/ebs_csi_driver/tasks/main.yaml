@@ -44,4 +44,25 @@
 
 # Check if PersistentVolumeClaim ebs-pvc exists
 - name: Check if PersistentVolumeClaim ebs-pvc exists
-                                                                                                                                 1,34          Top
+  command: "kubectl get pvc ebs-pvc"
+  register: pvc_check
+  environment:
+    KUBECONFIG: /home/ansible-user/.kube/config
+  failed_when: pvc_check.rc not in [0, 1]
+  changed_when: False
+
+# Create PersistentVolumeClaim if it does not exist
+- name: Create PersistentVolumeClaim if it does not exist
+  template:
+    src: /home/ansible-user/ansible-playbook-k8s-installation/roles/ebs_csi_driver/templates/persistentvolumeclaim.yaml.j2
+    dest: /tmp/persistentvolumeclaim.yaml
+  when: pvc_check.rc == 1
+  environment:
+    KUBECONFIG: /home/ansible-user/.kube/config
+
+# Apply PersistentVolumeClaim if it does not exist
+- name: Apply PersistentVolumeClaim if it does not exist
+  command: "kubectl apply -f /tmp/persistentvolumeclaim.yaml"
+  environment:
+    KUBECONFIG: /home/ansible-user/.kube/config
+  when: pvc_check.rc == 1
