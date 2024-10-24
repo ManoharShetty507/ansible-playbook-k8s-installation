@@ -12,7 +12,7 @@
 
 - name: Create NFS export directory
   file:
-    path: "{{ nfs_path }}"
+    path: "{{ nfs_export_dir }}"
     state: directory
     owner: nobody
     group: nogroup
@@ -20,7 +20,7 @@
 
 - name: Set group read-write-execute permissions and setgid on NFS directory
   file:
-    path: "{{ nfs_path }}"
+    path: "{{ nfs_export_dir }}"
     mode: "2775"
     recurse: yes
 
