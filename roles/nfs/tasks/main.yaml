@@ -1,3 +1,4 @@
+---
 - name: Update apt cache
   apt:
     update_cache: yes
@@ -11,7 +12,7 @@
 
 - name: Create NFS export directory
   file:
-    path: "{{ nfs_export_dir }}"  # Use the variable for the NFS export directory
+    path: "{{ nfs_path }}"
     state: directory
     owner: nobody
     group: nogroup
@@ -19,7 +20,7 @@
 
 - name: Set group read-write-execute permissions and setgid on NFS directory
   file:
-    path: "{{ nfs_export_dir }}"
+    path: "{{ nfs_path }}"
     mode: "2775"
     recurse: yes
 
@@ -45,16 +46,8 @@
 - debug:
     msg: "{{ showmount_output.stdout }}"
 
-- name: Allow NFS traffic in firewall from LoadBalancer IP
-  ufw:
-    rule: allow
-    proto: tcp
-    from_ip: "{{ loadbalancer_ip }}"  # Use the variable for the LoadBalancer IP
-    port: nfs
-
-# Example handler to restart NFS server when exports are modified
+# Handlers
 - name: Restart NFS server
   systemd:
     name: nfs-kernel-server
     state: restarted
-    enabled: yes
