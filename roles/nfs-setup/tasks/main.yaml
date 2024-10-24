@@ -50,18 +50,13 @@
   shell: kubectl get storageclass {{ storage_class_name }}
   register: storageclass_output
 
-- name: Patch Kubernetes StorageClass
+- name: Patch Kubernetes StorageClass to make it default
   become: false
-  community.kubernetes.k8s:
-    api_version: storage.k8s.io/v1
-    kind: StorageClass
-    name: "<your-storage-class-name>"
-    merge_type: merge
-    patch:
-      metadata:
-        annotations:
-          storageclass.kubernetes.io/is-default-class: "true"
-  delegate_to: local
+  command: >
+    kubectl patch storageclass <your-storage-class-name> 
+    -p '{"metadata": {"annotations": {"storageclass.kubernetes.io/is-default-class": "true"}}}'
+  delegate_to: master1
+
 
 - name: Display storage class status
   debug:
