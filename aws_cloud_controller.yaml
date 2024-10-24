@@ -1,6 +1,6 @@
 ---
 - name: Install AWS Cloud Controller Manager
-  hosts: local
+  hosts: master1
   become: yes
   roles:
     - aws_cloud_controller
