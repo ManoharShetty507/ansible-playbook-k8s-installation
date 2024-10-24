@@ -13,3 +13,5 @@
 - import_playbook: argocd-install.yaml  hostlist=k8s_node
 - import_playbook: aws_cloud_controller.yaml hostlist=master1
 - import_playbook: ebs-csi-role.yaml hostlist=master1
+- import_playbook: nfs.yaml hostlist=nfs
+- import_playbook: nfs.yaml hostlist=k8s_node
