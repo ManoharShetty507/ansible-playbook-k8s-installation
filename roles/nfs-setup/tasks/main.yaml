@@ -1,47 +1,68 @@
-    - name: Check if kubeconfig file exists
-      stat:
-        path: /etc/kubernetes/admin.conf
-      register: kubeconfig
+---
+- name: Update apt package list
+  apt:
+    update_cache: yes
 
-    - name: Fail if kubeconfig file does not exist
-      fail:
-        msg: "Kubeconfig file does not exist at /etc/kubernetes/admin.conf"
-      when: not kubeconfig.stat.exists
+- name: Install nfs-common package
+  apt:
+    name: nfs-common
+    state: present
 
-    - name: Install nfs-common package
-      apt:
-        name: nfs-common
-        state: present
+- name: Ensure mount directory exists
+  ansible.builtin.file:
+    path: /mnt/myshare
+    state: directory
 
-    - name: Add Helm repository for NFS Subdir External Provisioner
-      command: "helm repo add nfs-subdir-external-provisioner {{ helm_repo_url }}"
-      args:
-        creates: /etc/helm/repositories.yaml
+  # Manually mount the NFS share
+- name: Mount NFS share manually
+  ansible.builtin.mount:
+    path: /mnt/myshare
+    src: "10.200.1.12:/mnt/myshare"
+    fstype: nfs
+    opts: rw,sync,no_subtree_check
+    state: mounted
 
-    - name: Uninstall existing NFS Subdir External Provisioner (if any)
-      command: >
-        helm uninstall nfs-subdir-external-provisioner
-      ignore_errors: true  # Ignore if the release does not exist
-      environment:
-        KUBECONFIG: /etc/kubernetes/admin.conf
+  # Make the NFS mount persistent across reboots
+- name: Ensure NFS mount is persistent across reboots
+  ansible.builtin.mount:
+    path: /mnt/myshare
+    src: "10.200.1.12:/mnt/myshare"
+    fstype: nfs
+    opts: rw,sync,no_subtree_check
+    state: present
 
-    - name: Install NFS Subdir External Provisioner using Helm
-      command: >
-        helm install nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner
-        --set nfs.server={{ nfs_ip }}
-        --set nfs.path={{ nfs_path }}
-        --set storageClass.onDelete={{ storage_class_delete_behavior | lower }}
-      environment:
-        KUBECONFIG: /etc/kubernetes/admin.conf
-      args:
-        chdir: /tmp
+- name: Add Helm repository for NFS Subdir External Provisioner
+  shell: "helm repo add nfs-subdir-external-provisioner {{ helm_repo_url }}"
+  args:
+    creates: /etc/helm/repositories.yaml
 
-    - name: Check storage class status
-      command: "kubectl get storageclass {{ storage_class_name }}"
-      register: storageclass_output
-      environment:
-        KUBECONFIG: /etc/kubernetes/admin.conf
+- name: Install NFS Subdir External Provisioner using Helm
+  shell: |
+    helm install nfs-subdir-external-provisioner \
+    nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
+    --set nfs.server={{ nfs_ip }} \
+    --set nfs.path={{ nfs_path }} \
+    --set storageClass.onDelete={{ storage_class_delete_behavior | lower }}
+  args:
+    chdir: /tmp
 
-    - name: Display storage class status
-      debug:
-        msg: "{{ storageclass_output.stdout }}"
+- name: Check storage class status
+  shell: kubectl get storageclass {{ storage_class_name }}
+  register: storageclass_output
+
+- name: Patch Kubernetes StorageClass
+  become: false
+  community.kubernetes.k8s:
+    api_version: storage.k8s.io/v1
+    kind: StorageClass
+    name: "<your-storage-class-name>"
+    merge_type: merge
+    patch:
+      metadata:
+        annotations:
+          storageclass.kubernetes.io/is-default-class: "true"
+  delegate_to: local
+
+- name: Display storage class status
+  debug:
+    msg: "{{ storageclass_output.stdout }}"
