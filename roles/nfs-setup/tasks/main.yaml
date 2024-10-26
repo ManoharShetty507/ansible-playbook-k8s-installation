@@ -26,7 +26,7 @@
 - name: Ensure NFS mount is persistent across reboots
   ansible.builtin.mount:
     path: /mnt/myshare
-    src: "10.200.1.12:/mnt/myshare"
+    src: "{ nfs_ip }:/mnt/myshare"
     fstype: nfs
     opts: rw,sync,no_subtree_check
     state: present
