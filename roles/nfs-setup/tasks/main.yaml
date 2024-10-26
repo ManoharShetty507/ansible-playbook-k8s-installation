@@ -1,4 +1,3 @@
----
 - name: Update apt package list
   apt:
     update_cache: yes
@@ -13,29 +12,29 @@
     path: /mnt/myshare
     state: directory
 
-  # Manually mount the NFS share
+# Manually mount the NFS share
+# Mount NFS share using shell command
 - name: Mount NFS share manually
-  ansible.builtin.mount:
-    path: /mnt/myshare
-    src: "{ nfs_ip }:/mnt/myshare"
-    fstype: nfs
-    opts: rw,sync,no_subtree_check
-    state: mounted
+  shell: |
+     sudo mount -t nfs {{nfs_ip }}:/mnt/myshare /mnt
+  become: true  # Use become to ensure the command runs with elevated permissions
 
-  # Make the NFS mount persistent across reboots
+# Make the NFS mount persistent across reboots
 - name: Ensure NFS mount is persistent across reboots
   ansible.builtin.mount:
     path: /mnt/myshare
-    src: "{ nfs_ip }:/mnt/myshare"
+    src: "{{ nfs_ip }}:/mnt/myshare"  # Use nfs_ip variable here
     fstype: nfs
     opts: rw,sync,no_subtree_check
     state: present
 
+# Add Helm repository for NFS Subdir External Provisioner
 - name: Add Helm repository for NFS Subdir External Provisioner
   shell: "helm repo add nfs-subdir-external-provisioner {{ helm_repo_url }}"
   args:
     creates: /etc/helm/repositories.yaml
 
+# Install NFS Subdir External Provisioner using Helm
 - name: Install NFS Subdir External Provisioner using Helm
   shell: |
     helm install nfs-subdir-external-provisioner \
@@ -46,18 +45,21 @@
   args:
     chdir: /tmp
 
+# Check storage class status
 - name: Check storage class status
   shell: kubectl get storageclass {{ storage_class_name }}
   register: storageclass_output
 
-- name: Patch Kubernetes StorageClass to make it default
-  become: false
-  command: >
-    kubectl patch storageclass <your-storage-class-name> 
+# Patch Kubernetes StorageClass
+- name: Patch Kubernetes StorageClass
+  shell: |
+    kubectl patch storageclass {{ storage_class_name }} \
+    --type='merge' \
     -p '{"metadata": {"annotations": {"storageclass.kubernetes.io/is-default-class": "true"}}}'
-  delegate_to: master1
+  register: patch_output
+  ignore_errors: yes  # Optional: ignore errors if the patch fails
 
-
+# Display storage class status
 - name: Display storage class status
   debug:
     msg: "{{ storageclass_output.stdout }}"
