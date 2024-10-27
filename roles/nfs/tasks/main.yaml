@@ -29,6 +29,12 @@
     src: nfs_exports.j2
     dest: /etc/exports
 
+- name: Add additional NFS export entry
+  lineinfile:
+    path: /etc/exports
+    line: "/mnt/myshare 10.20.5.0/24(rw,sync,no_subtree_check)"
+    state: present
+
 - name: Export NFS shares
   command: exportfs -av
   notify: Restart NFS server
@@ -38,6 +44,20 @@
     name: nfs-kernel-server
     enabled: yes
     state: started
+
+- name: Apply exportfs to refresh exports
+  command: exportfs -r
+
+- name: Set permissions on NFS share directory
+  file:
+    path: /mnt/myshare
+    mode: "0755"
+
+- name: Change ownership of NFS share directory
+  file:
+    path: /mnt/myshare
+    owner: nobody
+    group: nogroup
 
 - name: Verify NFS exports
   command: /sbin/showmount -e localhost
