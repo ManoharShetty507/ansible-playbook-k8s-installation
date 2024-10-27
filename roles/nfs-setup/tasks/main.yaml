@@ -1,22 +1,29 @@
+# Set kubeconfig path as a variable
+- name: Set kubeconfig path
+  set_fact:
+    kubeconfig_path: /home/ansible-user/.kube/config
+
+# Update apt package list
 - name: Update apt package list
   apt:
     update_cache: yes
 
+# Install nfs-common package
 - name: Install nfs-common package
   apt:
     name: nfs-common
     state: present
 
+# Ensure mount directory exists
 - name: Ensure mount directory exists
   ansible.builtin.file:
     path: /mnt/myshare
     state: directory
 
 # Manually mount the NFS share
-# Mount NFS share using shell command
 - name: Mount NFS share manually
   shell: |
-     sudo mount -t nfs {{nfs_ip }}:/mnt/myshare /mnt
+     sudo mount -t nfs {{ nfs_ip }}:/mnt/myshare /mnt
   become: true  # Use become to ensure the command runs with elevated permissions
 
 # Make the NFS mount persistent across reboots
@@ -28,15 +35,31 @@
     opts: rw,sync,no_subtree_check
     state: present
 
-# Add Helm repository for NFS Subdir External Provisioner
+# Check existing Helm release (delegate to master1)
+- name: Check existing Helm release
+  command: helm list --all-namespaces
+  register: helm_list
+  changed_when: false
+  delegate_to: master1
+
+# Uninstall existing NFS Subdir External Provisioner (delegate to master1)
+- name: Uninstall existing NFS Subdir External Provisioner
+  command: helm uninstall nfs-subdir-external-provisioner --namespace default
+  when: "'nfs-subdir-external-provisioner' in helm_list.stdout"
+  ignore_errors: true  # This will ignore errors if the release doesn't exist
+  delegate_to: master1
+
+# Add Helm repository for NFS Subdir External Provisioner (delegate to master1)
 - name: Add Helm repository for NFS Subdir External Provisioner
   shell: "helm repo add nfs-subdir-external-provisioner {{ helm_repo_url }}"
   args:
     creates: /etc/helm/repositories.yaml
+  delegate_to: master1
 
-# Install NFS Subdir External Provisioner using Helm
+# Install NFS Subdir External Provisioner using Helm (delegate to master1)
 - name: Install NFS Subdir External Provisioner using Helm
   shell: |
+    export KUBECONFIG="/home/ansible-user/.kube/config" && \
     helm install nfs-subdir-external-provisioner \
     nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
     --set nfs.server={{ nfs_ip }} \
@@ -44,13 +67,19 @@
     --set storageClass.onDelete={{ storage_class_delete_behavior | lower }}
   args:
     chdir: /tmp
+  delegate_to: master1
+  environment:
+    KUBECONFIG: "/home/ansible-user/.kube/config"
 
-# Check storage class status
+# Check storage class status (delegate to master1)
 - name: Check storage class status
   shell: kubectl get storageclass {{ storage_class_name }}
   register: storageclass_output
+  delegate_to: master1
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"  # Set KUBECONFIG environment variable
 
-# Patch Kubernetes StorageClass
+# Patch Kubernetes StorageClass (delegate to master1)
 - name: Patch Kubernetes StorageClass
   shell: |
     kubectl patch storageclass {{ storage_class_name }} \
@@ -58,6 +87,9 @@
     -p '{"metadata": {"annotations": {"storageclass.kubernetes.io/is-default-class": "true"}}}'
   register: patch_output
   ignore_errors: yes  # Optional: ignore errors if the patch fails
+  delegate_to: master1
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"  # Set KUBECONFIG environment variable
 
 # Display storage class status
 - name: Display storage class status
